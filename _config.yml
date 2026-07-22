@@ -28,17 +28,14 @@ google_analytics: "G-HE6JECSKQK"
 
 # Site navigation - each item must have a title and a url.
 navigation:
-  - text: Home
+  - text: 主页
     url: /
-  - text: About
+  - text: 关于我
     url: /about/
-  - text: Style Guide
-    url: /style-guide/
-  - text: Tags
+  - text: 标签
     url: /tags/
-  - text: Download
-    url: https://github.com/JustGoodThemes/Scriptor-Jekyll-Theme
-
+  - text: 项目
+    url: /projects/
 # The shortname for your Disqus site to enable comments.
 disqus: justgoodthemes
 
