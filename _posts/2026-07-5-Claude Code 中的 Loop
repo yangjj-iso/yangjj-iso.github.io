@@ -12,11 +12,6 @@ tags: [Claude Code, Agent, Loop]
 
 > Agent 不断重复执行一轮轮工作，直到满足某个停止条件。
 
-<!--more-->
-
-> 原文来源：[ClaudeDevs on X](https://x.com/ClaudeDevs/status/2074208949205881033)  
-> 说明：本文为中文翻译，命令、原语名与代码标识符保持英文原文。
-
 我们会按下面几个维度，把 loop 分成几类：
 
 - 如何被触发
