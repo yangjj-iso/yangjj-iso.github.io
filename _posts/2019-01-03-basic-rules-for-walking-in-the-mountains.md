@@ -7,33 +7,182 @@ feature_image: images/mountain.jpg
 tags: [tips, work]
 ---
 
-In the *United States, Canada, the Republic of Ireland, and United Kingdom,* **hiking** refers to walking outdoors on a trail, or off trail, for recreational purposes. A day hike refers to a hike that can be completed in a single day. However, in the United Kingdom, the word walking is also used, as well as rambling, while walking in mountainous areas is called hillwalking. In Northern England, Including the Lake District and Yorkshire Dales, fellwalking describes hill or mountain walks, as fell is the common word for both features there.
+# 入门：Loop（循环）
 
-<!--more-->
+> 原文来源：[ClaudeDevs on X](https://x.com/ClaudeDevs/status/2074208949205881033)  
+> 说明：本文为中文翻译，命令、原语名与代码标识符保持英文原文。
 
-Hiking can sometimes involves bushwhacking and hiking is sometimes referred to as such. This specifically refers to difficult walking through dense forest, undergrowth, or bushes, where forward progress requires pushing vegetation aside. In extreme cases of bushwhacking, where the vegetation is so dense that human passage is impeded, a machete is used to clear a pathway. The Australian term bushwalking refers to both on and off-trail hiking. Common terms for hiking used by [New Zealanders](https://en.wikipedia.org/wiki/New_Zealand) are tramping (particularly for overnight and longer trips), walking or bushwalking. Trekking is the preferred word used to describe multi-day hiking in the mountainous regions of India, Pakistan, Nepal, North America, South America, Iran and in the highlands of East Africa. Hiking a long-distance trail from end-to-end is also referred to as trekking and as thru-hiking in some places. In North America, multi-day hikes, usually with camping, are referred to as [backpacking](https://en.wikipedia.org/wiki/Backpacking_(wilderness)).
+最近大家谈得比较多的是“设计 loop”，而不是只给 coding agent 写 prompt。如果你在 X 上花点时间找“loop 到底是什么”，会看到好几种不同说法。
 
-## Long Distance Hiking
+在 Claude Code 团队里，我们把 **loop** 定义为：
 
-Frequently nowadays long distance hikes (walking tours) are undertaken along long distance paths, including the National Trails in England and Wales, the National Trail System in the USA and The Grande Randonnée (France), Grote Routepaden, or Lange-afstand-wandelpaden (Holland), Grande Rota (Portugal), Gran Recorrido (Spain) is a network of long-distance footpaths in Europe, mostly in France, Belgium, the Netherlands and Spain. There are extensive networks in other European countries of long distance trails, as well as in Canada, Australia, New Zealand, Nepal, and to a lesser extent other Asiatic countries, like Turkey, Israel, and Jordan. In the Alps of Austria, Slovenia, Switzerland, Germany, France, and Italy walking tours are often made from 'hut-to-hut', using an extensive system of mountain huts.
+> Agent 不断重复执行一轮轮工作，直到满足某个停止条件。
 
-{% include image_full.html imageurl="/images/mountain-2.jpg" title="Mountain" caption="Norway is Beautiful" %}
+我们会按下面几个维度，把 loop 分成几类：
 
-In the late 20th-century there has been a proliferation of official and unofficial long distance routes, which mean that hikers now are more likely to refer to using a long distance way (Britain), trail (USA), The Grande Randonnée (France), etc., than setting out on a walking tour. Early examples of long distance paths, include the Appalachian Trail in the USA and the Pennine Way in Britain. Pilgrimage routes are now treated, by some walkers, as long distance routes, and the route taken by the British National Trail the North Downs Way closely follows that of the Pilgrims' Way to Canterbury.
+- 如何被触发
+- 如何停止
+- 使用了哪种 Claude Code 原语
+- 最适合哪类任务
 
-*Hiking times can be estimated by Naismith's rule or Tobler's hiking function.*
+下文会讲主要的 loop 类型、各自适用场景，以及如何在保证代码质量的同时控制 token 用量。  
+并不是所有任务都需要复杂 loop；应优先选择最简单的方案，并有选择地使用这些模式。
 
-## Equipment
+---
 
-The equipment required for hiking depends on the length of the hike, but day hikers generally carry at least water, food, a map, and rain-proof gear. Hikers usually wear sturdy hiking boots for mountain walking and backpacking, as protection from the rough terrain, as well as providing increased stability. The Mountaineers club recommends a list of "Ten Essentials" equipment for hiking, including a compass, sunglasses, sunscreen, a flashlight, a first aid kit, a fire starter, and a knife. Other groups recommend items such as hat, gloves, insect repellent, and an emergency blanket. A GPS navigation device can also be helpful and route cards may be used as a guide.
+## Turn-based loops（按轮次的 loop）
 
->“Returning home is the most difficult part of long-distance hiking; You have grown outside the puzzle and your piece no longer fits.”
-><cite>― Cindy Ross</cite>
+- **触发方式**：用户 prompt
+- **停止条件**：Claude 判断任务已完成，或需要额外上下文
+- **最适合**：较短任务，且不属于固定流程或定期任务
+- **控制用量的方式**：写得更具体的 prompt；用 skills 改进验证，减少轮次
 
-Proponents of ultralight backpacking argue that long lists of required items for multi-day hikes increases pack weight, and hence fatigue and the chance of injury. Instead, they recommend reducing pack weight, in order to make hiking long distances easier. Even the use of hiking boots on long-distances hikes is controversial among ultralight hikers, because of their weight.
+你发出的每一条 prompt，都会启动一个由你主导每一轮的手动 loop。  
+Claude 会收集上下文、采取行动、检查结果，必要时再重复，最后给出回复。我们把这个过程叫作 **agentic loop**。
 
-## Environmental Impact
+例如：你让 Claude 做一个点赞按钮。它会读代码、修改、跑测试，然后交回它认为可用的结果。  
+接着你人工检查，再写下一条 prompt。
 
-Natural environments are often fragile, and may be accidentally damaged, especially when a large number of hikers are involved. For example, years of gathering wood can strip an alpine area of valuable nutrients. and some species, such as martens or bighorn sheep, are very sensitive to the presence of humans, especially around mating season. Generally, protected areas such as parks have regulations in place to protect the environment, so as to minimize such impact. Such regulations include banning wood fires, restricting camping to established camp sites, disposing or packing out faecal matter, and imposing a quota on the number of hikers. Many hikers espouse the philosophy of Leave No Trace, following strict practices on dealing with food waste, food packaging, and other impact on the environment.
+你可以把手动验证步骤写进 `SKILL.md`，让 Claude 自己做更多端到端检查，从而改进验证环节。  
+这应包含工具或连接器，让 Claude 能看到、测量或交互结果。检查越定量，Claude 越容易自我验证。
 
-Human waste is often a major source of environmental impact from hiking, and can contaminate the watershed and make other hikers ill. 'Catholes' dug 10 to 25 cm (4 to 10 inches) deep, depending on local soil composition and covered after use, at least 60 m (200 feet) away from water sources and trails, are recommended to reduce the risk of bacterial contamination. [ [Source](https://en.wikipedia.org/wiki/Hiking) ]
+例如，你可以在 `SKILL.md` 中这样写：
+
+```markdown
+---
+name: verify-frontend-change
+description: Verify any UI change end-to-end before declaring it done.
+---
+
+# Verifying frontend changes
+
+Never report a UI change as complete based on a successful edit alone. Verify it the way a human reviewer would:
+
+1. Start the dev server and open the edited page in the browser.
+
+2. Interact with the change directly. For a new control (button, input, toggle): click it, confirm the expected state change, and screenshot before/after.
+
+3. Check the browser console: zero new errors or warnings.
+
+4. Use the Chrome Devtools MCP, run a performance trace and audit Core Web Vitals.
+
+If any step fails, fix the issue and rerun from step 1 — do not hand back partially verified work.
+```
+
+---
+
+## Goal-based loop（基于目标的 loop，`/goal`）
+
+- **触发方式**：实时手动 prompt
+- **停止条件**：目标达成，或达到最大轮次
+- **最适合**：有可验证退出条件的任务
+- **控制用量的方式**：设定明确完成标准，并给出明确轮次上限，例如 “stop after 5 tries.”
+
+有时单轮不够，尤其是更复杂的任务。Agent 在可迭代时表现更好。  
+你可以用 `/goal` 定义“完成是什么样子”，从而延长 Claude 的迭代时间。
+
+当你定义了成功标准后，Claude 就不必自己判断“够不够好”并过早结束 loop。  
+每当 Claude 想停下来时，评估模型会检查你的条件，并在目标未达成且未到轮次上限时，把它送回继续工作。
+
+这也是为什么确定性标准特别有效，例如：通过的测试数量、达到某个评分阈值。
+
+例如：
+
+```bash
+/goal get the homepage Lighthouse score to 90 or above, stop after 5 tries.
+```
+
+---
+
+## Time-based loop（基于时间的 loop，`/loop` 与 `/schedule`）
+
+- **触发方式**：指定时间间隔
+- **停止条件**：你取消它，或工作本身完成（例如 PR 已合并、队列已清空）
+- **最适合**：周期性工作，或对接外部环境 / 外部系统
+- **控制用量的方式**：把间隔设长一些，或改为按事件响应，而不是按时间轮询
+
+有些 agent 工作是周期性的：任务本身不变，只有输入在变。例如每天早上总结 Slack 消息。  
+还有些工作依赖外部系统；与之对接的一种简单方式，是按固定间隔检查，并响应变化。例如某个 PR 可能收到 code review，或 CI 失败。
+
+这时可以用 `/loop` 按间隔重新运行 prompt。例如：
+
+```bash
+/loop 5m check my PR, address review comments, and fix failing CI
+```
+
+`/loop` 运行在你的电脑上；电脑关掉，它就停。  
+你也可以用 `/schedule` 创建 routine，把 loop 挪到云端。
+
+---
+
+## Proactive loops（主动式 loop）
+
+- **触发方式**：事件或定时任务，实时不需要人在场
+- **停止条件**：每个任务在目标达成时退出；routine 本身会一直运行，直到你关掉
+- **最适合**：定义清晰、持续流入的工作：bug 报告、issue 分诊、迁移、依赖升级等
+- **控制用量的方式**：把 routine 路由到更小、更快的模型；判断型决策再使用最强模型
+
+上面这些原语，再结合 Claude Code 的其他能力，例如 auto mode 和 dynamic workflows（research preview），可以组合成适合长时间运行的 loop。
+
+例如，处理持续进来的反馈时，你可以这样组合：
+
+- 用 `/schedule`（research preview）运行 routine，检查是否有新报告
+- 用 `/goal` 定义完成标准，并用 skills 写清如何验证
+- 用 dynamic workflows 编排多个 agent：分诊报告、修复问题、审查修复
+- 用 auto mode 让 routine 在不反复征求权限的情况下继续运行
+
+合起来，一条 prompt 可能是：
+
+```bash
+/schedule every hour: check the project-feedback channel for bug reports. /goal: don't stop until every report found this run is triaged, actioned, and responded to. When fixing a bug, use a workflow to explore three solutions in parallel worktrees and have a judge adversarially review them.
+```
+
+---
+
+## 维护代码质量
+
+loop 输出质量取决于它周围的系统。设计系统时：
+
+- **保持代码库本身干净**：Claude 会跟随你代码库中已有的模式与约定。
+- **给 Claude 自我验证的方式**：用 skills 把“什么叫好”编码成团队标准。
+- **让文档容易触达**：框架与库文档应包含最新最佳实践。
+- **用第二个 agent 做 code review**：带有全新上下文的 reviewer 偏见更小，也不容易被主 agent 的推理过程影响。你可以使用内置 `/code-review` skill，或 GitHub 的 Code Review。
+
+当某次结果达不到标准时，不要只修这一次问题；尽量把它编码进系统，让后续所有迭代都受益。
+
+---
+
+## 管理 token 用量
+
+要控制 token 用量，loop 需要有清晰边界：
+
+- **为任务选择合适的原语和模型**：小任务不需要多个 agent 或多个 loop。有些任务可以用更便宜、更快的模型。
+- **定义清晰的成功与停止条件**：明确“完成是什么样子”，让 Claude 更快到达解，但不要过早停。
+- **大规模运行前先做试点**：dynamic workflows 可能生成上百个 agent。先在一小块工作上估算用量。
+- **确定性工作用脚本**：跑脚本通常比逐步推理更便宜。例如 PDF skill 可以直接附带填表脚本，让 Claude 每次运行脚本，而不是每次重写代码。
+- **不要比需要的更频繁地跑 routine**：把间隔匹配到你观察对象的实际变化频率。
+- **检查用量**：`/usage` 会按 skills、subagents、MCPs 拆分近期用量；无参数的 `/goal` 会显示目前的轮次与 token 用量；`/workflows` 会显示每个 agent 的 token 用量，并且你可以随时停掉某个 agent。
+
+---
+
+## 如何开始
+
+总结如下：
+
+| Loop 类型 | 你交接出去的是什么 | 适用时机 | 优先使用 |
+|---|---|---|---|
+| Turn-based | 检查（the check） | 你在探索或做决策 | 自定义 verification skills |
+| Goal-based | 停止条件（the stop condition） | 你清楚“完成是什么样子” | `/goal` |
+| Time-based | 触发器（the trigger） | 工作发生在项目外，且按计划进行 | `/loop`、`/schedule` |
+| Proactive | prompt 本身 | 工作是周期性的，且定义清晰 | 以上全部，以及 dynamic workflows |
+
+想开始使用 loop，先看你已经在做的工作。  
+选一个你自己是瓶颈的任务，问自己能交出哪一部分：
+
+- 你能否写出验证检查？
+- 目标是否足够清晰？
+- 工作是否按计划到达？
+
+有想法后，就运行这个 loop，观察它在哪里卡住、在哪里越界，并大胆迭代它。
+
+更多信息，请阅读 Claude Code 文档中关于并行运行 agent 的内容，以及 `loop`、`schedule`、`goal` 和 dynamic workflows 相关页面。
