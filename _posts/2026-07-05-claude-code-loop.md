@@ -2,7 +2,7 @@
 layout: post
 title: "Claude Code 中的 Loop"
 description: "梳理 Claude Code 中四类 loop 的触发方式、停止条件、适用场景，以及代码质量与 token 用量的控制方法。"
-date: 2026-07-5
+date: 2026-07-05
 tags: [Claude Code, Agent, Loop]
 ---
 
