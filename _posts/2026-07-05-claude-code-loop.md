@@ -12,6 +12,8 @@ tags: [Claude Code, Agent, Loop]
 
 > Agent 不断重复执行一轮轮工作，直到满足某个停止条件。
 
+<!--more-->
+
 我们会按下面几个维度，把 loop 分成几类：
 
 - 如何被触发
