@@ -32,12 +32,12 @@ navigation:
     url: /
   - text: 关于我
     url: /about/
-  - text: 标签
-    url: /tags/
   - text: 项目
     url: /projects/
   - text: 生活
     url: /live/
+  - text: 标签
+    url: /tags/
 # The shortname for your Disqus site to enable comments.
 disqus: justgoodthemes
 
