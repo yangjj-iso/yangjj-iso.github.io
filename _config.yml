@@ -36,6 +36,10 @@ navigation:
     url: /tags/
   - text: 项目
     url: /projects/
+  - text: 生活
+    url: /live/
+  - text: 经历
+    url: /expe/
 # The shortname for your Disqus site to enable comments.
 disqus: justgoodthemes
 
