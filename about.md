@@ -5,6 +5,7 @@ description: An optional about page for Scriptor Jekyll theme
 permalink: /about/
 ---
 
+## Self-introdection
 你好，我是 **Milk**，目前就读于西南大学，是一名专注于软件开发与前沿技术探索的开发者。
 
 我主要使用 **Java、TypeScript 和 Python** 构建应用，关注后端开发、系统设计以及 Agent 开发方向。我喜欢从实际问题出发，把需求拆解为可以落地的功能，并在不断实践中完善自己的工程能力。
