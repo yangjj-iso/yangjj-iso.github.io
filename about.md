@@ -15,8 +15,6 @@ permalink: /about/
 
  **腾讯 · 微信支付** · 后台开发实习生 | 2026.08 - 至今
 
-## 项目
-
 > 空谈无用，给我看代码。<cite>Linus Torvalds</cite>
 
 *感谢你的阅读!*
