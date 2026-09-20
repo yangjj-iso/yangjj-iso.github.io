@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="296" height="232" viewBox="0 0 296 232" role="img">
+  <rect width="296" height="232" rx="12" fill="#ffffff"/>
+  <g>
+  <rect x="28.0" y="28.0" width="240.0" height="40.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="148.0" y="53.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">读取 dispatch_outbox</text>
+</g>
+  <line x1="148.0" y1="68.0" x2="148.0" y2="89.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="143.0,88.0 153.0,88.0 148.0,96.0" fill="#2d72d9"/>
+  <g>
+  <rect x="28.0" y="96.0" width="240.0" height="40.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="148.0" y="121.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">投递 Redis</text>
+</g>
+  <line x1="148.0" y1="136.0" x2="148.0" y2="157.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="143.0,156.0 153.0,156.0 148.0,164.0" fill="#2d72d9"/>
+  <g>
+  <rect x="28.0" y="164.0" width="240.0" height="40.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="148.0" y="189.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">标记 dispatched</text>
+</g>
+</svg>

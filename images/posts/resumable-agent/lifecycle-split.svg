@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="300" viewBox="0 0 420 300" role="img">
+  <rect width="420" height="300" rx="12" fill="#ffffff"/>
+  <g>
+  <rect x="70.0" y="20.0" width="280.0" height="42.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="210.0" y="46.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Request 生命周期</text>
+</g>
+  <text x="210.0" y="84.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="20" fill="#2d72d9">≠</text>
+  <g>
+  <rect x="70.0" y="96.0" width="280.0" height="42.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="210.0" y="122.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Task 生命周期</text>
+</g>
+  <text x="210.0" y="160.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="20" fill="#2d72d9">≠</text>
+  <g>
+  <rect x="70.0" y="172.0" width="280.0" height="42.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="210.0" y="198.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Worker 生命周期</text>
+</g>
+  <text x="210.0" y="236.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="20" fill="#2d72d9">≠</text>
+  <g>
+  <rect x="70.0" y="248.0" width="280.0" height="42.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="210.0" y="274.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">SSE Connection 生命周期</text>
+</g>
+</svg>

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="250" viewBox="0 0 500 250" role="img">
+  <rect width="500" height="250" rx="12" fill="#ffffff"/>
+  <text x="130.0" y="28.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="13" fill="#2d72d9">API</text>
+  <text x="370.0" y="28.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="13" fill="#2a9d6e">Worker</text>
+  <g>
+  <rect x="30.0" y="44.0" width="200.0" height="38.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="130.0" y="68.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Request</text>
+</g>
+  <line x1="130.0" y1="82.0" x2="130.0" y2="101.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="125.0,100.0 135.0,100.0 130.0,108.0" fill="#2d72d9"/>
+  <g>
+  <rect x="30.0" y="108.0" width="200.0" height="38.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="130.0" y="132.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">enqueue(task_id)</text>
+</g>
+  <line x1="130.0" y1="146.0" x2="130.0" y2="165.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="125.0,164.0 135.0,164.0 130.0,172.0" fill="#2d72d9"/>
+  <g>
+  <rect x="30.0" y="172.0" width="200.0" height="44.0" rx="8" fill="#eef8f3" stroke="#2a9d6e" stroke-width="1.5"/>
+  <text x="130.0" y="199.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Request 可以结束</text>
+</g>
+  <g>
+  <rect x="270.0" y="44.0" width="200.0" height="38.0" rx="8" fill="#eef8f3" stroke="#2a9d6e" stroke-width="1.5"/>
+  <text x="370.0" y="68.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Worker</text>
+</g>
+  <line x1="370.0" y1="82.0" x2="370.0" y2="101.0" stroke="#2a9d6e" stroke-width="1.5"/>
+  <polygon points="365.0,100.0 375.0,100.0 370.0,108.0" fill="#2a9d6e"/>
+  <g>
+  <rect x="270.0" y="108.0" width="200.0" height="38.0" rx="8" fill="#eef8f3" stroke="#2a9d6e" stroke-width="1.5"/>
+  <text x="370.0" y="132.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">task_id</text>
+</g>
+  <line x1="370.0" y1="146.0" x2="370.0" y2="165.0" stroke="#2a9d6e" stroke-width="1.5"/>
+  <polygon points="365.0,164.0 375.0,164.0 370.0,172.0" fill="#2a9d6e"/>
+  <g>
+  <rect x="270.0" y="172.0" width="200.0" height="44.0" rx="8" fill="#eef8f3" stroke="#2a9d6e" stroke-width="1.5"/>
+  <text x="370.0" y="199.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Agent.run()</text>
+</g>
+</svg>

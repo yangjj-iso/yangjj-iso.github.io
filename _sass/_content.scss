@@ -57,6 +57,25 @@
   font-weight: bold;
 }
 
+.post-content .diagram {
+  margin: 1.5em 0 1.75em;
+  text-align: center;
+
+  img {
+    border: 1px solid _palette(border);
+    border-radius: 12px;
+    display: inline-block;
+    height: auto;
+    max-width: min(100%, 560px);
+  }
+
+  figcaption {
+    color: _palette(meta);
+    font-size: 0.77778rem;
+    padding-top: 0.5em;
+  }
+}
+
 /* Author profile */
 .author-box {
   border-top: 1px solid _palette(border);

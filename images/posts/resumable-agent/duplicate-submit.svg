@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="210" viewBox="0 0 440 210" role="img">
+  <rect width="440" height="210" rx="12" fill="#ffffff"/>
+  <g>
+  <rect x="30.0" y="30.0" width="160.0" height="44.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="110.0" y="57.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Request #1</text>
+</g>
+  <g>
+  <rect x="250.0" y="30.0" width="160.0" height="44.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="330.0" y="57.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Request #2</text>
+</g>
+  <line x1="110.0" y1="74.0" x2="110.0" y2="111.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="105.0,110.0 115.0,110.0 110.0,118.0" fill="#2d72d9"/>
+  <line x1="330.0" y1="74.0" x2="330.0" y2="111.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="325.0,110.0 335.0,110.0 330.0,118.0" fill="#2d72d9"/>
+  <g>
+  <rect x="30.0" y="120.0" width="160.0" height="52.0" rx="8" fill="#fdf2f0" stroke="#c0392b" stroke-width="1.5"/>
+  <text x="110.0" y="151.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Agent Task A</text>
+</g>
+  <g>
+  <rect x="250.0" y="120.0" width="160.0" height="52.0" rx="8" fill="#fdf2f0" stroke="#c0392b" stroke-width="1.5"/>
+  <text x="330.0" y="151.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Agent Task B</text>
+</g>
+  <text x="220.0" y="196.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="13" fill="#5b6475">同一次意图，两次副作用</text>
+</svg>

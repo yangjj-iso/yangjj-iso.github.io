@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="296" height="368" viewBox="0 0 296 368" role="img">
+  <rect width="296" height="368" rx="12" fill="#ffffff"/>
+  <g>
+  <rect x="28.0" y="28.0" width="240.0" height="40.0" rx="8" fill="#eef8f3" stroke="#2a9d6e" stroke-width="1.5"/>
+  <text x="148.0" y="53.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Failure</text>
+</g>
+  <line x1="148.0" y1="68.0" x2="148.0" y2="89.0" stroke="#2a9d6e" stroke-width="1.5"/>
+  <polygon points="143.0,88.0 153.0,88.0 148.0,96.0" fill="#2a9d6e"/>
+  <g>
+  <rect x="28.0" y="96.0" width="240.0" height="40.0" rx="8" fill="#eef8f3" stroke="#2a9d6e" stroke-width="1.5"/>
+  <text x="148.0" y="121.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Detect</text>
+</g>
+  <line x1="148.0" y1="136.0" x2="148.0" y2="157.0" stroke="#2a9d6e" stroke-width="1.5"/>
+  <polygon points="143.0,156.0 153.0,156.0 148.0,164.0" fill="#2a9d6e"/>
+  <g>
+  <rect x="28.0" y="164.0" width="240.0" height="40.0" rx="8" fill="#eef8f3" stroke="#2a9d6e" stroke-width="1.5"/>
+  <text x="148.0" y="189.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Persist</text>
+</g>
+  <line x1="148.0" y1="204.0" x2="148.0" y2="225.0" stroke="#2a9d6e" stroke-width="1.5"/>
+  <polygon points="143.0,224.0 153.0,224.0 148.0,232.0" fill="#2a9d6e"/>
+  <g>
+  <rect x="28.0" y="232.0" width="240.0" height="40.0" rx="8" fill="#eef8f3" stroke="#2a9d6e" stroke-width="1.5"/>
+  <text x="148.0" y="257.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Recover</text>
+</g>
+  <line x1="148.0" y1="272.0" x2="148.0" y2="293.0" stroke="#2a9d6e" stroke-width="1.5"/>
+  <polygon points="143.0,292.0 153.0,292.0 148.0,300.0" fill="#2a9d6e"/>
+  <g>
+  <rect x="28.0" y="300.0" width="240.0" height="40.0" rx="8" fill="#eef8f3" stroke="#2a9d6e" stroke-width="1.5"/>
+  <text x="148.0" y="325.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Resume</text>
+</g>
+</svg>

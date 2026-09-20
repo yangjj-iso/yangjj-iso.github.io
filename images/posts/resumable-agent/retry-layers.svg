@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="460" height="170" viewBox="0 0 460 170" role="img">
+  <rect width="460" height="170" rx="12" fill="#ffffff"/>
+  <g>
+  <rect x="30.0" y="24.0" width="400.0" height="58.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="230.0" y="58.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433"></text>
+</g>
+  <text x="230.0" y="48.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" fill="#2d72d9">Capability Retry</text>
+  <text x="230.0" y="68.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="12" fill="#5b6475">单个外部调用的临时错误</text>
+  <g>
+  <rect x="30.0" y="96.0" width="400.0" height="58.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="230.0" y="130.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433"></text>
+</g>
+  <text x="230.0" y="120.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" fill="#2d72d9">Job Retry</text>
+  <text x="230.0" y="140.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="12" fill="#5b6475">整个 Worker Job 的基础设施故障</text>
+</svg>

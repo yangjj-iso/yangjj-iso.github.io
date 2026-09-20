@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="276" height="504" viewBox="0 0 276 504" role="img">
+  <rect width="276" height="504" rx="12" fill="#ffffff"/>
+  <g>
+  <rect x="28.0" y="28.0" width="220.0" height="40.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="138.0" y="53.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">读取用户资料</text>
+</g>
+  <line x1="138.0" y1="68.0" x2="138.0" y2="89.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="133.0,88.0 143.0,88.0 138.0,96.0" fill="#2d72d9"/>
+  <g>
+  <rect x="28.0" y="96.0" width="220.0" height="40.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="138.0" y="121.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">调用 LLM</text>
+</g>
+  <line x1="138.0" y1="136.0" x2="138.0" y2="157.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="133.0,156.0 143.0,156.0 138.0,164.0" fill="#2d72d9"/>
+  <g>
+  <rect x="28.0" y="164.0" width="220.0" height="40.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="138.0" y="189.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">搜索外部信息</text>
+</g>
+  <line x1="138.0" y1="204.0" x2="138.0" y2="225.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="133.0,224.0 143.0,224.0 138.0,232.0" fill="#2d72d9"/>
+  <g>
+  <rect x="28.0" y="232.0" width="220.0" height="40.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="138.0" y="257.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">再次推理</text>
+</g>
+  <line x1="138.0" y1="272.0" x2="138.0" y2="293.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="133.0,292.0 143.0,292.0 138.0,300.0" fill="#2d72d9"/>
+  <g>
+  <rect x="28.0" y="300.0" width="220.0" height="40.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="138.0" y="325.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">调用业务工具</text>
+</g>
+  <line x1="138.0" y1="340.0" x2="138.0" y2="361.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="133.0,360.0 143.0,360.0 138.0,368.0" fill="#2d72d9"/>
+  <g>
+  <rect x="28.0" y="368.0" width="220.0" height="40.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="138.0" y="393.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">生成结构化结果</text>
+</g>
+  <line x1="138.0" y1="408.0" x2="138.0" y2="429.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="133.0,428.0 143.0,428.0 138.0,436.0" fill="#2d72d9"/>
+  <g>
+  <rect x="28.0" y="436.0" width="220.0" height="40.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="138.0" y="461.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">生成最终报告</text>
+</g>
+</svg>

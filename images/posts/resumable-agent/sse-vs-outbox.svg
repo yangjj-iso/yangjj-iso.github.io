@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="472" height="300" viewBox="0 0 472 300" role="img">
+  <rect width="472" height="300" rx="12" fill="#ffffff"/>
+  <text x="124.0" y="40.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="13" fill="#c0392b">会丢事件</text>
+  <text x="348.0" y="40.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="13" fill="#2a9d6e">可回放</text>
+  <g>
+  <rect x="24.0" y="52.0" width="200.0" height="38.0" rx="8" fill="#fdf2f0" stroke="#c0392b" stroke-width="1.5"/>
+  <text x="124.0" y="76.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Agent</text>
+</g>
+  <line x1="124.0" y1="90.0" x2="124.0" y2="107.0" stroke="#c0392b" stroke-width="1.5"/>
+  <polygon points="119.0,106.0 129.0,106.0 124.0,114.0" fill="#c0392b"/>
+  <g>
+  <rect x="24.0" y="114.0" width="200.0" height="38.0" rx="8" fill="#fdf2f0" stroke="#c0392b" stroke-width="1.5"/>
+  <text x="124.0" y="138.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">SSE</text>
+</g>
+  <line x1="124.0" y1="152.0" x2="124.0" y2="169.0" stroke="#c0392b" stroke-width="1.5"/>
+  <polygon points="119.0,168.0 129.0,168.0 124.0,176.0" fill="#c0392b"/>
+  <g>
+  <rect x="24.0" y="176.0" width="200.0" height="38.0" rx="8" fill="#fdf2f0" stroke="#c0392b" stroke-width="1.5"/>
+  <text x="124.0" y="200.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Browser</text>
+</g>
+  <g>
+  <rect x="248.0" y="52.0" width="200.0" height="38.0" rx="8" fill="#eef8f3" stroke="#2a9d6e" stroke-width="1.5"/>
+  <text x="348.0" y="76.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Agent</text>
+</g>
+  <line x1="348.0" y1="90.0" x2="348.0" y2="107.0" stroke="#2a9d6e" stroke-width="1.5"/>
+  <polygon points="343.0,106.0 353.0,106.0 348.0,114.0" fill="#2a9d6e"/>
+  <g>
+  <rect x="248.0" y="114.0" width="200.0" height="38.0" rx="8" fill="#eef8f3" stroke="#2a9d6e" stroke-width="1.5"/>
+  <text x="348.0" y="138.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Event Outbox</text>
+</g>
+  <line x1="348.0" y1="152.0" x2="348.0" y2="169.0" stroke="#2a9d6e" stroke-width="1.5"/>
+  <polygon points="343.0,168.0 353.0,168.0 348.0,176.0" fill="#2a9d6e"/>
+  <g>
+  <rect x="248.0" y="176.0" width="200.0" height="38.0" rx="8" fill="#eef8f3" stroke="#2a9d6e" stroke-width="1.5"/>
+  <text x="348.0" y="200.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">SSE</text>
+</g>
+  <line x1="348.0" y1="214.0" x2="348.0" y2="231.0" stroke="#2a9d6e" stroke-width="1.5"/>
+  <polygon points="343.0,230.0 353.0,230.0 348.0,238.0" fill="#2a9d6e"/>
+  <g>
+  <rect x="248.0" y="238.0" width="200.0" height="38.0" rx="8" fill="#eef8f3" stroke="#2a9d6e" stroke-width="1.5"/>
+  <text x="348.0" y="262.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Browser</text>
+</g>
+</svg>

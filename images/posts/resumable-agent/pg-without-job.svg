@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="460" height="180" viewBox="0 0 460 180" role="img">
+  <rect width="460" height="180" rx="12" fill="#ffffff"/>
+  <g>
+  <rect x="24.0" y="36.0" width="190.0" height="100.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="119.0" y="91.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433"></text>
+</g>
+  <text x="119.0" y="76.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" fill="#2d72d9">PostgreSQL</text>
+  <text x="119.0" y="100.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="13" fill="#5b6475">task = PENDING</text>
+  <g>
+  <rect x="246.0" y="36.0" width="190.0" height="100.0" rx="8" fill="#fdf2f0" stroke="#c0392b" stroke-width="1.5"/>
+  <text x="341.0" y="91.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433"></text>
+</g>
+  <text x="341.0" y="76.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" fill="#c0392b">Redis</text>
+  <text x="341.0" y="100.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="13" fill="#c0392b">没有这个 job</text>
+</svg>

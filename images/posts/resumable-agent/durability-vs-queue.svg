@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="150" viewBox="0 0 500 150" role="img">
+  <rect width="500" height="150" rx="12" fill="#ffffff"/>
+  <g>
+  <rect x="20.0" y="24.0" width="220.0" height="100.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="130.0" y="79.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433"></text>
+</g>
+  <text x="130.0" y="62.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="15" fill="#2d72d9">PostgreSQL</text>
+  <text x="130.0" y="86.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="13" fill="#5b6475">Durability Backbone</text>
+  <g>
+  <rect x="260.0" y="24.0" width="220.0" height="100.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="370.0" y="79.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433"></text>
+</g>
+  <text x="370.0" y="62.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="15" fill="#2d72d9">Redis / Queue</text>
+  <text x="370.0" y="86.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="13" fill="#5b6475">Scheduling / Coordination</text>
+</svg>

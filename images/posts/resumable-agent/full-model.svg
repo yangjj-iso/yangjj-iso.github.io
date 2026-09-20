@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="680" viewBox="0 0 360 680" role="img">
+  <rect width="360" height="680" rx="12" fill="#ffffff"/>
+  <g>
+  <rect x="70.0" y="20.0" width="220.0" height="38.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="180.0" y="44.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Request</text>
+</g>
+  <line x1="180.0" y1="58.0" x2="180.0" y2="73.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="175.0,72.0 185.0,72.0 180.0,80.0" fill="#2d72d9"/>
+  <g>
+  <rect x="70.0" y="80.0" width="220.0" height="38.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="180.0" y="104.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Idempotency</text>
+</g>
+  <line x1="180.0" y1="118.0" x2="180.0" y2="133.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="175.0,132.0 185.0,132.0 180.0,140.0" fill="#2d72d9"/>
+  <g>
+  <rect x="70.0" y="140.0" width="220.0" height="38.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="180.0" y="164.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Durable Task</text>
+</g>
+  <line x1="180.0" y1="178.0" x2="180.0" y2="193.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="175.0,192.0 185.0,192.0 180.0,200.0" fill="#2d72d9"/>
+  <g>
+  <rect x="70.0" y="200.0" width="220.0" height="38.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="180.0" y="224.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Queue</text>
+</g>
+  <line x1="180.0" y1="238.0" x2="180.0" y2="253.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="175.0,252.0 185.0,252.0 180.0,260.0" fill="#2d72d9"/>
+  <g>
+  <rect x="70.0" y="260.0" width="220.0" height="38.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="180.0" y="284.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Worker</text>
+</g>
+  <line x1="180.0" y1="298.0" x2="180.0" y2="313.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="175.0,312.0 185.0,312.0 180.0,320.0" fill="#2d72d9"/>
+  <g>
+  <rect x="70.0" y="320.0" width="220.0" height="38.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="180.0" y="344.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Atomic Claim</text>
+</g>
+  <line x1="180.0" y1="358.0" x2="180.0" y2="373.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="175.0,372.0 185.0,372.0 180.0,380.0" fill="#2d72d9"/>
+  <g>
+  <rect x="70.0" y="380.0" width="220.0" height="38.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="180.0" y="404.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Agent Runtime</text>
+</g>
+  <g>
+  <rect x="24.0" y="444.0" width="100.0" height="36.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="74.0" y="467.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="12" font-weight="600" fill="#1d2433">Checkpoint</text>
+</g>
+  <g>
+  <rect x="130.0" y="444.0" width="100.0" height="36.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="180.0" y="467.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="12" font-weight="600" fill="#1d2433">Tool Ledger</text>
+</g>
+  <g>
+  <rect x="236.0" y="444.0" width="100.0" height="36.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="286.0" y="467.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="12" font-weight="600" fill="#1d2433">Event Outbox</text>
+</g>
+  <line x1="286.0" y1="480.0" x2="286.0" y2="495.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="281.0,494.0 291.0,494.0 286.0,502.0" fill="#2d72d9"/>
+  <g>
+  <rect x="70.0" y="502.0" width="220.0" height="38.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="180.0" y="526.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">SSE</text>
+</g>
+  <line x1="180.0" y1="540.0" x2="180.0" y2="555.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="175.0,554.0 185.0,554.0 180.0,562.0" fill="#2d72d9"/>
+  <g>
+  <rect x="70.0" y="562.0" width="220.0" height="38.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="180.0" y="586.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Client</text>
+</g>
+</svg>

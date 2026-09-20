@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="168" viewBox="0 0 360 168" role="img">
+  <rect width="360" height="168" rx="12" fill="#ffffff"/>
+  <g>
+  <rect x="40.0" y="28.0" width="280.0" height="44.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="180.0" y="55.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">HTTP Request 生命周期</text>
+</g>
+  <text x="180.0" y="96.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="22" fill="#2d72d9">=</text>
+  <g>
+  <rect x="40.0" y="112.0" width="280.0" height="44.0" rx="8" fill="#fdf2f0" stroke="#c0392b" stroke-width="1.5"/>
+  <text x="180.0" y="139.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">Agent Task 生命周期</text>
+</g>
+</svg>

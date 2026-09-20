@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="310" viewBox="0 0 520 310" role="img">
+  <rect width="520" height="310" rx="12" fill="#ffffff"/>
+  <g>
+  <rect x="170.0" y="20.0" width="180.0" height="40.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="260.0" y="45.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">PENDING</text>
+</g>
+  <line x1="260.0" y1="60.0" x2="260.0" y2="81.0" stroke="#2d72d9" stroke-width="1.5"/>
+  <polygon points="255.0,80.0 265.0,80.0 260.0,88.0" fill="#2d72d9"/>
+  <g>
+  <rect x="170.0" y="88.0" width="180.0" height="40.0" rx="8" fill="#f4f7fb" stroke="#2d72d9" stroke-width="1.5"/>
+  <text x="260.0" y="113.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">RUNNING</text>
+</g>
+  <line x1="140.0" y1="128.0" x2="140.0" y2="169.0" stroke="#c47d12" stroke-width="1.5"/>
+  <polygon points="135.0,168.0 145.0,168.0 140.0,176.0" fill="#c47d12"/>
+  <line x1="260.0" y1="128.0" x2="260.0" y2="169.0" stroke="#c0392b" stroke-width="1.5"/>
+  <polygon points="255.0,168.0 265.0,168.0 260.0,176.0" fill="#c0392b"/>
+  <line x1="380.0" y1="128.0" x2="380.0" y2="169.0" stroke="#2a9d6e" stroke-width="1.5"/>
+  <polygon points="375.0,168.0 385.0,168.0 380.0,176.0" fill="#2a9d6e"/>
+  <g>
+  <rect x="40.0" y="176.0" width="140.0" height="40.0" rx="8" fill="#fbf4e8" stroke="#c47d12" stroke-width="1.5"/>
+  <text x="110.0" y="201.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">WAITING</text>
+</g>
+  <g>
+  <rect x="190.0" y="176.0" width="140.0" height="40.0" rx="8" fill="#fdf2f0" stroke="#c0392b" stroke-width="1.5"/>
+  <text x="260.0" y="201.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">FAILED</text>
+</g>
+  <g>
+  <rect x="340.0" y="176.0" width="140.0" height="40.0" rx="8" fill="#eef8f3" stroke="#2a9d6e" stroke-width="1.5"/>
+  <text x="410.0" y="201.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">COMPLETED</text>
+</g>
+  <line x1="110.0" y1="216.0" x2="110.0" y2="241.0" stroke="#c47d12" stroke-width="1.5"/>
+  <polygon points="105.0,240.0 115.0,240.0 110.0,248.0" fill="#c47d12"/>
+  <g>
+  <rect x="40.0" y="248.0" width="140.0" height="40.0" rx="8" fill="#fbf4e8" stroke="#c47d12" stroke-width="1.5"/>
+  <text x="110.0" y="273.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">PENDING</text>
+</g>
+  <text x="260.0" y="300.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="12" fill="#5b6475">WAITING 不是失败，只是等用户</text>
+</svg>

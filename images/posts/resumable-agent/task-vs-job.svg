@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="230" viewBox="0 0 480 230" role="img">
+  <rect width="480" height="230" rx="12" fill="#ffffff"/>
+  <text x="240.0" y="28.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="13" fill="#5b6475">业务任务 10:00 – 14:31</text>
+  <g>
+  <rect x="40.0" y="48.0" width="400.0" height="36.0" rx="8" fill="#fbf4e8" stroke="#c47d12" stroke-width="1.5"/>
+  <text x="240.0" y="71.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="14" font-weight="600" fill="#1d2433">WAITING  10:02 → 14:30</text>
+</g>
+  <g>
+  <rect x="40.0" y="108.0" width="150.0" height="52.0" rx="8" fill="#eef8f3" stroke="#2a9d6e" stroke-width="1.5"/>
+  <text x="115.0" y="139.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="12" font-weight="600" fill="#1d2433">Job #1  10:00–10:02</text>
+</g>
+  <g>
+  <rect x="290.0" y="108.0" width="150.0" height="52.0" rx="8" fill="#eef8f3" stroke="#2a9d6e" stroke-width="1.5"/>
+  <text x="365.0" y="139.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="12" font-weight="600" fill="#1d2433">Job #2  14:30–14:31</text>
+</g>
+  <text x="240.0" y="196.0" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC',sans-serif" font-size="13" fill="#5b6475">Task 可以远长于 Worker Job</text>
+</svg>
