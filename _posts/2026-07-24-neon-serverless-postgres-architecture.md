@@ -11,14 +11,13 @@ tags: [PostgreSQL, Neon, 数据库, Serverless]
 这当然是它最直观的体验之一，但如果只看到 Serverless，就会错过 Neon 真正有意思的地方。
 
 Neon 的核心不是在 PostgreSQL 外面加一层“自动开关机”，而是重新拆开了传统 PostgreSQL 里长期绑在一起的两件事。
-
+<!--more-->
 **计算负责执行 SQL，存储负责保存事实。**
 
 当持久化数据不再属于某一台 Postgres 机器以后，计算节点就可以变得短命。它可以启动、停止、换机器、扩容、缩容，而数据库历史仍然独立存在。
 
 这一步架构变化，后面才自然长出了 autoscaling、scale-to-zero、database branching、read replica 和 point-in-time restore。
 
-<!--more-->
 
 ---
 
