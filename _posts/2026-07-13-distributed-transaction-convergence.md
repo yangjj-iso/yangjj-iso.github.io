@@ -90,9 +90,7 @@ COMMIT;
 
 那么这笔交易到底成功还是失败？
 
-如果直接当失败处理并开始释放优惠券、解冻额度，就可能出现：
-
-
+如果直接把超时当失败处理并开始释放优惠券、解冻额度，就可能形成一种非常危险的状态分叉：真实资金已经扣了，订单却被关闭，外围资源也被回滚。
 
 这就是分布式事务最典型的困难：
 
@@ -135,9 +133,7 @@ COMMIT;
 
 这时真实资源已经变化，但 A 完全不知道。
 
-对于 A 来说，这三种情况都可能表现成同一个错误：
-
-
+对于 A 来说，这三种情况都可能表现成同一个错误：`timeout`。
 
 所以一个成熟的交易系统必须接受一个事实：
 
@@ -145,9 +141,7 @@ COMMIT;
 
 不能简单把 Timeout 等价成失败。因为超时并不能证明远端动作没有成功。
 
-更加合理的处理方式是：
-
-
+更加合理的处理方式，是把超时显式建模为 `UNKNOWN / PENDING`：先保留未决状态，再查询真实资源，根据事实决定继续正向、进入回滚，还是继续等待。
 
 这也是“反查”为什么会成为交易系统里的基础能力。
 
@@ -186,9 +180,7 @@ COMMIT;
 
 外围资源不能各自自由决定最终状态，而要围绕这个核心状态收敛。
 
-例如：
-
-
+也就是说，核心状态一旦确定，外围资源的目标状态也随之确定：成功方向就完成核销与实扣，关闭方向就完成释放、解冻和退款或冲正。
 
 这时候，分布式事务的结构就从“多个调用组成的一条链”变成了：
 
@@ -202,9 +194,7 @@ COMMIT;
 
 如果恢复完全依赖某个编排进程的内存上下文，那么进程一旦重启，事务本身就失去了可恢复的依据。更稳妥的做法是把核心状态持久化在业务单据中，让编排器在每次恢复时重新读取这些事实，再决定继续正向、进入逆向，还是保持未决。
 
-可以把两者的职责简单理解成：
-
-
+图里的三个角色各司其职：**核心业务状态决定交易应该往哪里去，事务编排器负责下一步怎么走，资源状态则证明实际上已经发生了什么。**
 
 因此一个事务系统是否可靠，关键不只是“有没有编排框架”，而是**编排器退出以后，系统是否仍能仅凭持久化事实重建上下文并继续收敛。**
 
@@ -231,15 +221,9 @@ COMMIT;
 
 但真实系统里，正向和反向流程可能同时存在。
 
-例如实时流程 A 正在确认成功，而异步恢复流程 B 判断交易超时，开始回滚：
+例如实时流程 A 正在确认成功，而异步恢复流程 B 判断交易超时，准备释放优惠券。此时两个流程都在操作同一笔交易，只是方向相反。
 
-
-
-如果 B 先释放了优惠券，然后 A 又把核心交易推进成成功，最终就可能变成：
-
-
-
-每一个单独操作似乎都“成功”了，但组合起来却是错误的。
+如果 B 先把优惠券释放了，A 随后又把核心交易推进成成功，就可能出现“交易成功、资金成功、优惠券却已退回”的组合。每一个单独操作似乎都执行成功了，但组合起来却是错误的。
 
 所以补偿流程最重要的事情不是马上释放外围资源，而是先做一件事：
 
@@ -358,11 +342,7 @@ ON CONFLICT (idempotency_key) DO NOTHING;
 </defs><rect width="1200" height="480" fill="#fff"/><text x="310" y="45" text-anchor="middle" class="t" font-size="25" font-weight="700"><tspan x="310" dy="0">核心交易状态机</tspan></text><rect x="60" y="110" width="240" height="75" rx="12" class="box"/><text x="180" y="154.64" text-anchor="middle" class="t" font-size="21" font-weight="500"><tspan x="180" dy="0">PROCESSING</tspan></text><path d="M300 147 L390 100" class="line" marker-end="url(#arrow)"/><rect x="405" y="65" width="220" height="75" rx="12" class="ok"/><text x="515" y="109.64" text-anchor="middle" class="t" font-size="21" font-weight="500"><tspan x="515" dy="0">SUCCEEDED</tspan></text><path d="M300 160 L390 245" class="line" marker-end="url(#arrow)"/><rect x="405" y="215" width="220" height="75" rx="12" class="warn"/><text x="515" y="259.64" text-anchor="middle" class="t" font-size="21" font-weight="500"><tspan x="515" dy="0">CLOSING</tspan></text><path d="M515 290 L515 345" class="line" marker-end="url(#arrow)"/><rect x="405" y="360" width="220" height="75" rx="12" class="box"/><text x="515" y="404.64" text-anchor="middle" class="t" font-size="21" font-weight="500"><tspan x="515" dy="0">CLOSED</tspan></text><path d="M625 252 L670 252" class="dash"/><text x="685" y="260" text-anchor="start" class="t" font-size="19" font-weight="650"><tspan x="685" dy="0">禁止</tspan><tspan x="685" dy="27">CLOSING → SUCCEEDED</tspan></text><text x="895" y="45" text-anchor="middle" class="t" font-size="25" font-weight="700"><tspan x="895" dy="0">优惠券状态机</tspan></text><rect x="710" y="110" width="200" height="75" rx="12" class="box"/><text x="810" y="154.3" text-anchor="middle" class="t" font-size="20" font-weight="500"><tspan x="810" dy="0">AVAILABLE</tspan></text><path d="M910 147 L975 147" class="line" marker-end="url(#arrow)"/><rect x="990" y="110" width="180" height="75" rx="12" class="box"/><text x="1080" y="154.3" text-anchor="middle" class="t" font-size="20" font-weight="500"><tspan x="1080" dy="0">LOCKED</tspan></text><path d="M1080 185 L1080 245" class="line" marker-end="url(#arrow)"/><rect x="990" y="260" width="180" height="75" rx="12" class="ok"/><text x="1080" y="304.3" text-anchor="middle" class="t" font-size="20" font-weight="500"><tspan x="1080" dy="0">USED</tspan></text><path d="M1080 185 L835 245" class="line" marker-end="url(#arrow)"/><rect x="710" y="260" width="200" height="75" rx="12" class="warn"/><text x="810" y="304.3" text-anchor="middle" class="t" font-size="20" font-weight="500"><tspan x="810" dy="0">RELEASED</tspan></text><text x="780" y="405" text-anchor="middle" class="t" font-size="19" font-weight="650"><tspan x="780" dy="0">禁止 RELEASED → USED</tspan></text></svg>
 </figure>
 
-一旦进入 CLOSING：
-
-
-
-就是非法迁移。
+一旦进入 `CLOSING`，再尝试从 `CLOSING → SUCCEEDED` 就属于非法迁移。
 
 实现上可以依靠 CAS 或带状态条件的更新：
 
@@ -375,13 +355,7 @@ WHERE id = ?
 
 如果受影响行数为 0，说明交易方向已经被其他流程改变，这次正向推进必须停止。
 
-外围资源也应该有自己的状态机：
-
-
-
-并明确禁止：
-
-
+外围资源也应该有自己的状态机。以优惠券为例，可以从 `AVAILABLE → LOCKED`，随后根据交易方向进入 `USED` 或 `RELEASED`；一旦进入 `RELEASED`，就必须明确禁止再次推进到 `USED`。
 
 于是整个系统的安全性，不再依赖某个进程始终不出错，而是依赖：
 
@@ -410,9 +384,7 @@ Web 系统很容易把一次请求的结束，当成一次业务流程的结束�
 </defs><rect width="1200" height="720" fill="#fff"/><text x="300" y="45" text-anchor="middle" class="t" font-size="26" font-weight="700"><tspan x="300" dy="0">实时链路</tspan></text><rect x="80" y="85" width="440" height="60" rx="12" class="box"/><text x="300" y="121.8" text-anchor="middle" class="t" font-size="20" font-weight="500"><tspan x="300" dy="0">Client</tspan></text><path d="M300 145 L300 163" class="line" marker-end="url(#arrow)"/><rect x="80" y="170" width="440" height="60" rx="12" class="box"/><text x="300" y="206.8" text-anchor="middle" class="t" font-size="20" font-weight="500"><tspan x="300" dy="0">API</tspan></text><path d="M300 230 L300 248" class="line" marker-end="url(#arrow)"/><rect x="80" y="255" width="440" height="60" rx="12" class="box"/><text x="300" y="291.8" text-anchor="middle" class="t" font-size="20" font-weight="500"><tspan x="300" dy="0">Transaction Orchestrator</tspan></text><path d="M300 315 L300 333" class="line" marker-end="url(#arrow)"/><rect x="80" y="340" width="440" height="60" rx="12" class="box"/><text x="300" y="376.8" text-anchor="middle" class="t" font-size="20" font-weight="500"><tspan x="300" dy="0">Resource Services</tspan></text><path d="M300 400 L300 418" class="line" marker-end="url(#arrow)"/><rect x="80" y="425" width="440" height="60" rx="12" class="box"/><text x="300" y="461.8" text-anchor="middle" class="t" font-size="20" font-weight="500"><tspan x="300" dy="0">Response</tspan></text><text x="900" y="45" text-anchor="middle" class="t" font-size="26" font-weight="700"><tspan x="900" dy="0">异步恢复链路</tspan></text><rect x="690" y="85" width="420" height="52" rx="12" class="box"/><text x="900" y="117.46000000000001" text-anchor="middle" class="t" font-size="19" font-weight="500"><tspan x="900" dy="0">同步返回</tspan></text><path d="M900 137 L900 150" class="line" marker-end="url(#arrow)"/><rect x="690" y="155" width="420" height="52" rx="12" class="box"/><text x="900" y="187.46" text-anchor="middle" class="t" font-size="19" font-weight="500"><tspan x="900" dy="0">反查</tspan></text><path d="M900 207 L900 220" class="line" marker-end="url(#arrow)"/><rect x="690" y="225" width="420" height="52" rx="12" class="box"/><text x="900" y="257.46" text-anchor="middle" class="t" font-size="19" font-weight="500"><tspan x="900" dy="0">补偿</tspan></text><path d="M900 277 L900 290" class="line" marker-end="url(#arrow)"/><rect x="690" y="295" width="420" height="52" rx="12" class="box"/><text x="900" y="327.46" text-anchor="middle" class="t" font-size="19" font-weight="500"><tspan x="900" dy="0">消息重试</tspan></text><path d="M900 347 L900 360" class="line" marker-end="url(#arrow)"/><rect x="690" y="365" width="420" height="52" rx="12" class="box"/><text x="900" y="397.46" text-anchor="middle" class="t" font-size="19" font-weight="500"><tspan x="900" dy="0">对账</tspan></text><path d="M900 417 L900 430" class="line" marker-end="url(#arrow)"/><rect x="690" y="435" width="420" height="52" rx="12" class="box"/><text x="900" y="467.46" text-anchor="middle" class="t" font-size="19" font-weight="500"><tspan x="900" dy="0">最终收敛</tspan></text><rect x="150" y="560" width="900" height="105" rx="12" class="soft"/><text x="600" y="604.4599999999999" text-anchor="middle" class="t" font-size="24" font-weight="500"><tspan x="600" dy="0">高可用不是“实时永不失败”</tspan><tspan x="600" dy="32.400000000000006">而是失败以后仍知道下一步怎么走</tspan></text></svg>
 </figure>
 
-但交易真正的生命周期可能还在继续：
-
-
+但交易真正的生命周期不会随着 HTTP 响应结束。同步返回之后，系统仍可能继续反查、补偿、重试和对账，直到所有资源最终收敛。
 
 因此比较完整的系统通常会同时存在两条链路。
 
@@ -435,9 +407,7 @@ Web 系统很容易把一次请求的结束，当成一次业务流程的结束�
 - 部分资源成功；
 - 补偿失败。
 
-可以简单理解成：
-
-
+可以简单理解成：**实时链路负责尽快把大部分正常交易跑完，异步恢复链路负责在异常之后继续把系统修回来。**
 
 真正的高可用，不是确保实时链路永远不失败，而是即使它失败，系统仍然知道下一步应该做什么。
 
@@ -462,39 +432,23 @@ Web 系统很容易把一次请求的结束，当成一次业务流程的结束�
 
 下一步不能简单继续 Retry，因为资金渠道的上一次调用可能已经成功。
 
-恢复流程需要主动查询真实资源：
-
-
+恢复流程需要主动查询 Payment、Coupon、Quota、Channel 等真实资源，重新建立当前事实，再据此推断事务应该继续正向、进入逆向，还是保持未决。
 
 通常只有三种结论。
 
 ### 1. 可以确认应该成功
 
-例如资金已经成功，只是业务单没有推进：
-
-
-
-那么可以执行正向补偿：
-
-
+例如资金渠道已经成功，只是业务单仍停留在 `PROCESSING`，这时应走正向补偿：确认渠道结果、核销外围资源，并把 Payment 推进到 `SUCCEEDED`。
 
 ### 2. 可以确认应该失败
 
-例如核心交易已经进入关闭方向：
-
-
-
-那么继续释放资源，最终收敛到：
-
-
+例如核心交易已经进入 `CLOSING`，就应该继续释放外围资源，并最终把交易收敛到 `CLOSED`。
 
 ### 3. 现在仍然无法判断
 
 例如对方系统仍然返回未知状态。
 
-这时候最安全的行为往往不是强行猜一个结果，而是：
-
-
+这时候最安全的行为往往不是强行猜一个结果，而是保持 `PENDING`，稍后再次反查。
 
 “未知”本身就是一种需要被建模的状态。
 
@@ -588,17 +542,7 @@ Web 系统很容易把一次请求的结束，当成一次业务流程的结束�
 </defs><rect width="1200" height="700" fill="#fff"/><text x="600" y="40" text-anchor="middle" class="t" font-size="25" font-weight="700"><tspan x="600" dy="0">正常路径</tspan></text><rect x="100" y="75" width="210" height="70" rx="12" class="ok"/><text x="205" y="117.14" text-anchor="middle" class="t" font-size="21" font-weight="500"><tspan x="205" dy="0">A 成功</tspan></text><path d="M310 110 L355 110" class="line" marker-end="url(#arrow)"/><rect x="370" y="75" width="210" height="70" rx="12" class="ok"/><text x="475" y="117.14" text-anchor="middle" class="t" font-size="21" font-weight="500"><tspan x="475" dy="0">B 成功</tspan></text><path d="M580 110 L625 110" class="line" marker-end="url(#arrow)"/><rect x="640" y="75" width="210" height="70" rx="12" class="ok"/><text x="745" y="117.14" text-anchor="middle" class="t" font-size="21" font-weight="500"><tspan x="745" dy="0">C 成功</tspan></text><path d="M850 110 L895 110" class="line" marker-end="url(#arrow)"/><rect x="910" y="75" width="210" height="70" rx="12" class="ok"/><text x="1015" y="117.14" text-anchor="middle" class="t" font-size="21" font-weight="500"><tspan x="1015" dy="0">完成</tspan></text><text x="600" y="225" text-anchor="middle" class="t" font-size="25" font-weight="700"><tspan x="600" dy="0">真正困难的是故障窗口</tspan></text><rect x="90" y="270" width="490" height="105" rx="12" class="soft"/><text x="335" y="315.8" text-anchor="middle" class="t" font-size="20" font-weight="500"><tspan x="335" dy="0">部分成功</tspan><tspan x="335" dy="27">A 成功 · B 成功 · C 超时</tspan></text><rect x="620" y="270" width="490" height="105" rx="12" class="soft"/><text x="865" y="315.8" text-anchor="middle" class="t" font-size="20" font-weight="500"><tspan x="865" dy="0">方向竞争</tspan><tspan x="865" dy="27">正向未结束 · 回滚已启动</tspan></text><rect x="90" y="405" width="490" height="105" rx="12" class="soft"/><text x="335" y="450.8" text-anchor="middle" class="t" font-size="20" font-weight="500"><tspan x="335" dy="0">状态掉单</tspan><tspan x="335" dy="27">外部成功 · 本地未更新</tspan></text><rect x="620" y="405" width="490" height="105" rx="12" class="soft"/><text x="865" y="450.8" text-anchor="middle" class="t" font-size="20" font-weight="500"><tspan x="865" dy="0">旧消息回放</tspan><tspan x="865" dy="27">补偿后旧正向消息再次唤醒</tspan></text><rect x="90" y="540" width="1020" height="105" rx="12" class="warn"/><text x="600" y="585.8" text-anchor="middle" class="t" font-size="20" font-weight="500"><tspan x="600" dy="0">崩溃窗口</tspan><tspan x="600" dy="27">副作用已发生 · 结果尚未持久化</tspan></text></svg>
 </figure>
 
-真正困难的是这些情况：
-
-
-
-
-
-
-
-
-
-
+真正困难的是图里的这些故障窗口：部分成功、正反向竞争、外部成功但本地掉单、旧消息回放，以及“副作用已经发生但结果尚未持久化”的崩溃窗口。
 
 系统设计真正要回答的是：
 
