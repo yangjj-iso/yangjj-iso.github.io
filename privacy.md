@@ -5,7 +5,7 @@ description: 本站关于信息收集、使用与保护的说明。
 permalink: /privacy/
 ---
 
-**最后更新：2026 年 7 月 23 日**
+**最后更新：2026 年 9 月 22 日**
 
 欢迎访问 Milk 的个人博客（以下简称“本站”）。本站重视访客的隐私，并尽量以最少的数据处理方式提供内容服务。
 
@@ -16,8 +16,7 @@ permalink: /privacy/
 为保障网站运行和了解内容访问情况，相关服务可能处理以下技术信息：
 
 - GitHub Pages 可能为安全目的记录访问者的 IP 地址；
-- 如启用 Google Analytics，可能收集访问页面、访问时间、来源、浏览器与设备信息、粗略地理位置及会话统计；
-- Google Analytics 可能使用 `_ga` 等第一方 Cookie 区分访问者和会话。
+- Umami 会统计页面访问、来源、浏览器、操作系统、设备类型和访问者所在国家或地区；统计数据经过匿名化处理，其跟踪脚本不使用 Cookie。
 
 请勿在本站链接参数、邮件主题或其他公开内容中提交敏感个人信息。
 
@@ -37,18 +36,18 @@ permalink: /privacy/
 本站使用以下第三方服务：
 
 - **GitHub Pages**：用于托管和分发网站内容；
-- **Google Analytics**：用于匿名化或汇总化的访问统计。
+- **Umami Cloud**：用于匿名化的网站访问统计。
 
 这些服务可能在中国大陆以外处理数据，并分别适用其自身的隐私政策：
 
 - [GitHub Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement)
-- [Google Privacy Policy](https://policies.google.com/privacy)
+- [Umami Privacy Policy](https://umami.is/privacy)
 
-## 4. Cookie 与统计选择
+## 4. 统计选择
 
-如果你不希望被 Google Analytics 统计，可以在浏览器中清除或限制 Cookie，或使用浏览器的隐私保护功能阻止相关脚本。
+Umami 的跟踪脚本不使用 Cookie。如果你不希望被统计，可以使用浏览器的隐私保护功能阻止该脚本。
 
-本站不会将可直接识别你身份的信息主动传递给 Google Analytics。
+本站不会将可直接识别你身份的信息主动传递给 Umami。
 
 ## 5. 信息保存与保护
 

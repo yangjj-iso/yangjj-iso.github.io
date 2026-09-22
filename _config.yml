@@ -23,9 +23,6 @@ url: "https://blog.hellomilk.me"
 # Favicon
 favicon: images/favicon.png
 
-# Google Analytics id, e.g. "UA-NNNNNNNN-N"
-google_analytics: "G-HE6JECSKQK"
-
 # Site navigation - each item must have a title and a url.
 navigation:
   - text: 主页
