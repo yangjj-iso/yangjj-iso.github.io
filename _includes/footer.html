@@ -8,6 +8,15 @@
     <div class="site-info">
       {{ site.footer.content | markdownify }}
     </div><!-- .site-info -->
-    <a href="#page" id="back-to-top" class="back-to-top"><span class="screen-reader-text">Back to the top </span>&#8593;</a>
   </div><!-- .footer-bottom -->
+  <a href="#page" id="back-to-top" class="back-to-top" aria-label="回到顶部">
+    <span class="screen-reader-text">Back to the top</span>
+    <svg class="back-to-top__ring" viewBox="0 0 48 48" aria-hidden="true">
+      <circle class="back-to-top__track" cx="24" cy="24" r="22"/>
+      <circle class="back-to-top__progress" cx="24" cy="24" r="22"/>
+    </svg>
+    <svg class="back-to-top__arrow" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 19V5.5M6 11.5l6-6 6 6"/>
+    </svg>
+  </a>
 </footer><!-- .site-footer -->

@@ -21,7 +21,7 @@ layout: default
       </figure><!-- .post-thumbnail -->
       {% endif %}
     </header><!-- .post-header -->
-    <div class="post-content">
+    <div class="post-content post-excerpt">
       {% if post.content contains '<!--more-->' %}
       {{ post.content | split:'<!--more-->' | first }}
       <p class="read-more"><a href="{{ site.baseurl }}{{ post.url }}" class="read-more-link">Continue reading &rarr;</a>

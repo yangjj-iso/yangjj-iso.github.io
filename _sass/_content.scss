@@ -57,6 +57,13 @@
   font-weight: bold;
 }
 
+/* 列表页摘要只保留正文段落，文章以小标题开头时不显示成和文章标题一样大的标题 */
+.post-excerpt {
+  h1, h2, h3, h4, h5, h6 {
+    display: none;
+  }
+}
+
 .post-content .diagram {
   margin: 1.5em 0 1.75em;
   text-align: center;
