@@ -59,6 +59,19 @@ paginate_path: '/page:num/'
 # Permalinks
 permalink: /:title
 
+# 生活栏目：文章放在 _live/ 目录，只在 /live/ 页面列出，不进入主页分页
+collections:
+  live:
+    output: true
+    permalink: /live/:title
+
+defaults:
+  - scope:
+      path: ""
+      type: live
+    values:
+      layout: post
+
 # Conversion
 markdown: kramdown
 
