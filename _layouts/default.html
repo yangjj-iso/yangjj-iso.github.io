@@ -13,7 +13,7 @@
   {% endif %}
   <!-- Styles -->
   <link href="https://fonts.googleapis.com/css?family=Lato:400,400i,700,700i%7CNoto+Serif:400,400i,700,700i&display=swap" rel="stylesheet">
-  <link href="{{ '/assets/css/style.css' | relative_url }}" rel="stylesheet">
+  <link href="{{ '/assets/css/style.css' | relative_url }}?v={{ site.time | date: '%s' }}" rel="stylesheet">
 </head>
 <body>
 
@@ -28,7 +28,7 @@
   <!-- Scripts -->
   <script defer src="https://cloud.umami.is/script.js" data-website-id="2c5e666d-5752-4c03-8920-baea219589f5"></script>
   <script src="{{ '/assets/js/plugins.js' | relative_url }}"></script>
-  <script src="{{ '/assets/js/custom.js' | relative_url }}"></script>
+  <script src="{{ '/assets/js/custom.js' | relative_url }}?v={{ site.time | date: '%s' }}"></script>
 
 </body>
 </html>
