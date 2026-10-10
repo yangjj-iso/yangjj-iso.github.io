@@ -6,32 +6,15 @@ date: 2026-07-24
 tags: [PostgreSQL, Neon, 数据库, Serverless]
 ---
 
-第一次接触 Neon，很容易把它理解成“一个会自动休眠的 PostgreSQL”。
+第一次接触 Neon，很容易把它当成“一个会自动休眠的 PostgreSQL”。scale-to-zero 确实是最直观的体验，但它只是结果。Neon 实际做的，是把传统 PostgreSQL 里绑在一起的计算和持久化拆开：Postgres 只负责执行 SQL，数据和历史交给独立的存储层。
 
-这当然是它最直观的体验之一，但如果只看到 Serverless，就会错过 Neon 真正有意思的地方。
-
-Neon 的核心不是在 PostgreSQL 外面加一层“自动开关机”，而是重新拆开了传统 PostgreSQL 里长期绑在一起的两件事。
 <!--more-->
-**计算负责执行 SQL，存储负责保存事实。**
 
-当持久化数据不再属于某一台 Postgres 机器以后，计算节点就可以变得短命。它可以启动、停止、换机器、扩容、缩容，而数据库历史仍然独立存在。
+持久化数据不再属于某一台 Postgres 机器以后，计算节点就可以随时启动、停止、换机器和扩缩容，而数据库历史仍然独立存在。autoscaling、scale-to-zero、database branching、read replica 和 point-in-time restore，都是从这一步架构变化推出来的。
 
-这一步架构变化，后面才自然长出了 autoscaling、scale-to-zero、database branching、read replica 和 point-in-time restore。
+## 传统 PostgreSQL 为什么难做成 Serverless
 
-
----
-
-## 一、传统 PostgreSQL 为什么很难真正 Serverless
-
-传统 PostgreSQL 的心智模型非常直接。
-
-一台机器上跑着 Postgres 进程，内存里有 shared buffers，下面挂着自己的数据目录。表和索引最终都落成数据页，修改先生成 WAL，再由数据库负责把状态安全写到存储设备。
-
-问题也恰恰来自这里。
-
-**计算和持久化状态属于同一个实例。**
-
-当你想把一台机器换掉、扩容或者缩容时，不能只关心 CPU 和内存，还必须确保它的数据目录、WAL、恢复过程和副本关系都能继续工作。
+传统 PostgreSQL 的模型很直接：一台机器上跑着 Postgres 进程，内存里有 shared buffers，下面挂着自己的数据目录。表和索引落成数据页，修改先生成 WAL，再由数据库把状态安全写到存储设备。计算和持久化状态属于同一个实例，所以换机器、扩容或缩容时，不能只关心 CPU 和内存，还得保证数据目录、WAL、恢复过程和副本关系都能接着工作。
 
 <figure class="diagram">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" role="img" aria-label="传统 PostgreSQL 与 Neon 存算分离架构对比" style="width:100%;height:auto;display:block">
@@ -53,23 +36,11 @@ Neon 的核心不是在 PostgreSQL 外面加一层“自动开关机”，而是
 </svg>
 </figure>
 
-这种结构并不是不好。对于单机数据库，它简单而且成熟。
+对单机数据库来说，这种结构简单、成熟。麻烦出在云上波峰波谷明显的负载：为了高峰期的 8 核 CPU，你可能要让一台 8 核机器全天运行；为了 2 TB 数据，又不能因为半夜没有 SQL 就把整台数据库删掉重建。Neon 的做法是保留 PostgreSQL 的执行引擎，把长期存储拆出去。
 
-但到了云里，一旦工作负载具有明显波峰波谷，问题就出现了。
+## 架构：WAL 和 Page 分开处理
 
-为了高峰期的 8 核 CPU，你可能要让一台 8 核机器全天运行；为了 2 TB 数据，又不能因为半夜没有 SQL 就把整台数据库“删掉重建”。
-
-所以 Neon 做的第一件事情，不是发明另一套 SQL，而是把 PostgreSQL 的执行引擎和长期存储拆开。
-
----
-
-## 二、Neon 的核心架构，其实是把 WAL 和 Page 分别处理
-
-在 Neon 里，Compute 仍然运行 PostgreSQL，负责解析 SQL、执行计划、事务、索引访问和 buffer cache。
-
-不同的是，它不再把本地数据目录当作长期事实源。
-
-持久化状态被放进独立的分布式存储层，并进一步拆成三类角色。
+Neon 的 Compute 仍然运行 PostgreSQL，负责解析 SQL、执行计划、事务、索引访问和 buffer cache，只是不再把本地数据目录当作长期事实源。持久化状态放进独立的分布式存储层，由三类角色分担。
 
 <figure class="diagram">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 770" role="img" aria-label="Neon 的 Compute、Safekeeper、Pageserver 与对象存储" style="width:100%;height:auto;display:block">
@@ -91,51 +62,17 @@ Neon 的核心不是在 PostgreSQL 外面加一层“自动开关机”，而是
 </svg>
 </figure>
 
-### Compute 负责执行
+Compute 有 CPU、内存、shared buffers，也可以有本地缓存，但数据库的长期正确性不依赖这些。Compute 挂掉以后，要恢复的只是一个新的 PostgreSQL 执行环境，不需要先把整个数据库文件系统搬到新机器。
 
-Compute 可以理解成“会执行 PostgreSQL 的计算节点”。
+Safekeeper 负责 WAL 的持久化。事务不依赖 Compute 本机把 WAL 刷进自己的磁盘，而是把 WAL 发给多个 Safekeeper，由它们通过共识确认 WAL 已经有足够的持久化副本。所以**客户端收到 COMMIT 成功时，WAL 已经被可靠保存，但数据页不一定写进了对象存储。**
 
-它有 CPU、内存、shared buffers，也可以有本地缓存，但这些都不是数据库长期正确性的最终依赖。
+Pageserver 负责把 WAL 重新变成数据页。查询最终读的是 PostgreSQL 的数据页而不是 WAL，Pageserver 根据已有的页面版本加上之后的 WAL 变化，构造出 Compute 此刻需要的页，当前状态和历史状态都能服务。
 
-因此 Compute 挂掉以后，真正需要恢复的是一个新的 PostgreSQL 执行环境，而不是先把整个数据库文件系统搬到新机器。
+对象存储负责长期、可扩展的持久化。Pageserver 可以把热数据留在更快的本地 SSD / NVMe 上，较冷的不可变层进入对象存储。
 
-### Safekeeper 负责先把 WAL 保存安全
+## 写路径：提交只等 WAL
 
-PostgreSQL 的修改都会产生 WAL。
-
-Neon 不让事务依赖 Compute 本机把 WAL 刷进自己的长期磁盘，而是把 WAL 发送给多个 Safekeeper。Safekeeper 之间通过共识机制确认 WAL 已经达到足够的持久化副本。
-
-对一次事务来说，这一步非常关键。
-
-**客户端收到 COMMIT 成功时，核心条件是 WAL 已经被可靠保存，而不是所有数据页都已经写进对象存储。**
-
-### Pageserver 负责把 WAL 重新变成 Page
-
-查询最终读的不是 WAL，而是 PostgreSQL 的数据页。
-
-Pageserver 的职责，就是根据已有页面版本和之后的 WAL 变化，构造 Compute 此刻需要的数据页。
-
-它既服务当前状态，也能服务历史状态。
-
-### Object Storage 负责长期保存历史
-
-对象存储承担长期、可扩展的持久化职责。
-
-Pageserver 可以把热数据留在更快的本地 SSD / NVMe 上，而较冷的不可变层进入对象存储。
-
-所以从角色上看，可以粗略记成一句话。
-
-**Safekeeper 守住最新 WAL，Pageserver 组织 Page，Object Storage 保存长期历史。**
-
----
-
-## 三、一次写入真正发生了什么
-
-理解 Neon 最重要的一条链路，是写路径。
-
-传统直觉会认为，数据库提交时必须把脏页安全写进磁盘。
-
-Neon 把“事务是否可以提交”和“数据页什么时候物化完成”拆开了。
+传统直觉是数据库提交时要把脏页安全写进磁盘。Neon 把“事务能不能提交”和“数据页什么时候物化完成”拆成了两件事。
 
 <figure class="diagram">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 725" role="img" aria-label="Neon 写路径：WAL 先持久化，页面物化在事务之后" style="width:100%;height:auto;display:block">
@@ -157,33 +94,11 @@ Neon 把“事务是否可以提交”和“数据页什么时候物化完成”
 </svg>
 </figure>
 
-一次事务大致可以这样理解。
+Postgres 照常执行更新，修改内存页并生成 WAL。WAL 不以 Compute 本机磁盘为最终持久化目标，而是流向多个 Safekeeper；足够多的 Safekeeper 确认之后，事务就可以向客户端返回成功。Pageserver 随后消费这些 WAL，生成和整理页面版本，再把长期层异步写到对象存储。WAL 记录的是发生了什么变化，Pageserver 负责把这些变化还原成某个 LSN 时刻的数据页，这一步不在事务的关键路径上。
 
-Postgres 首先照常执行更新，在内存页上修改状态并生成 WAL。
+## 读路径：GetPage@LSN
 
-这些 WAL 不以 Compute 本机磁盘作为最终持久化目标，而是流向多个 Safekeeper。
-
-当足够多的 Safekeeper 确认 WAL 已安全保存以后，事务就具备了向客户端返回成功的条件。
-
-Pageserver 随后再消费这些 WAL，生成和整理数据页版本，并把长期层异步持久化到对象存储。
-
-这带来一个很重要的架构结论。
-
-**事务关键路径不必等待整张数据页进入长期对象存储。**
-
-WAL 负责描述“发生了什么变化”，Pageserver 再把这些变化转换成“某个 LSN 时刻的数据页长什么样”。
-
----
-
-## 四、读的时候，Neon 实际上在做 GetPage@LSN
-
-Neon 存储引擎里一个非常核心的概念，是 LSN，也就是 PostgreSQL WAL 的 Log Sequence Number。
-
-可以把它理解成 WAL 时间轴上的位置。
-
-当 Compute 需要读取一个 Page 时，Pageserver 不只知道“这个页现在是什么样”，还可以回答一个更强的问题。
-
-**这个 Page 在某个 LSN 时是什么样？**
+LSN 是 PostgreSQL WAL 的 Log Sequence Number，可以看作 WAL 时间轴上的位置，也是 Neon 存储引擎里很核心的概念。Compute 读一个 Page 时，Pageserver 不只能回答“这个页现在是什么样”，还能回答“这个页在某个 LSN 时是什么样”。
 
 <figure class="diagram">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 610" role="img" aria-label="Pageserver 通过 Image Layer 和 Delta Layer 重建指定 LSN 的数据页" style="width:100%;height:auto;display:block">
@@ -205,23 +120,13 @@ Neon 存储引擎里一个非常核心的概念，是 LSN，也就是 PostgreSQL
 </svg>
 </figure>
 
-Pageserver 会寻找目标 LSN 之前合适的 Image Layer，也就是某个完整页面版本，再把之后的 Delta Layer 逐步应用到目标位置。
+具体做法是先找到目标 LSN 之前合适的 Image Layer，也就是某个完整页面版本，再把之后的 Delta Layer 逐步应用到目标位置，得到该页在指定 LSN 的状态。
 
-最后得到的，就是该页面在指定 LSN 的状态。
+这和原地覆盖旧页的传统模型很不一样。Neon 的存储天然保留了版本历史，过去的数据库状态成了存储系统可以直接寻址的一部分，不用再去翻离线备份。后面的 Branching 和 PITR 之所以轻量，都建立在这一点上。
 
-这个设计和传统“原地覆盖旧页”的文件系统模型有很大不同。
+## Branching 为什么不用复制整库
 
-Neon 的存储天然保留了版本历史，因此“过去的数据库状态”不再只是某份离线备份，而是存储系统能够直接寻址的一部分。
-
-这也是后面 Branching 和 PITR 能做到非常轻量的原因。
-
----
-
-## 五、Database Branching 为什么不等于复制一个数据库
-
-数据库分支是 Neon 最容易让人觉得“像 Git”的能力。
-
-但它真正厉害的地方，并不是起了一个叫 branch 的名字，而是底层不需要在创建分支时复制整份数据库。
+数据库分支是 Neon 最像 Git 的能力，关键在于创建分支时底层不需要复制整份数据库。
 
 <figure class="diagram">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 690" role="img" aria-label="Neon Branching 使用 copy-on-write，共享历史数据只保存差异" style="width:100%;height:auto;display:block">
@@ -243,31 +148,13 @@ Neon 的存储天然保留了版本历史，因此“过去的数据库状态”
 </svg>
 </figure>
 
-假设生产分支已经有 500 GB 数据。
+假设生产分支已经有 500 GB 数据。传统做法给一个 PR 准备完整测试库，要做快照、恢复或复制，库越大越重。Neon 的分支接近 copy-on-write：新分支先共享父分支已有的历史页面，只有发生新的写入时才保存自己的差异，所以创建一个 branch 的初始成本和整库大小不是线性关系。
 
-传统做法要给一个 PR 准备完整测试库，通常意味着快照、恢复或者复制，数据库越大，环境准备越重。
+这样一来，数据库就不必只分成 production、staging、dev 三套长期环境，而可以当作短生命周期资源来用。一个 PR 一个 branch、一个测试任务一个 branch，甚至 Agent 每次执行一个 branch，都变得合理。
 
-Neon 的分支更接近 copy-on-write。
+## Scale to Zero 是存算分离的直接结果
 
-新分支创建时，先共享父分支已有的历史页面；只有分支发生新的写入时，才保存自己新增的差异。
-
-因此一个新 branch 的初始成本不与“整库有多大”线性绑定。
-
-这会直接改变数据库环境的使用方式。
-
-数据库不再只能分成 production、staging、dev 三套长期环境，而可以变成一种短生命周期资源。
-
-一个 PR 一个 branch，一个测试任务一个 branch，甚至一个 Agent 一次执行一个 branch，都开始变得合理。
-
----
-
-## 六、Scale to Zero 为什么是存算分离的结果，而不是魔法
-
-如果数据库的数据真的属于 Compute 本机，那么把 Compute 缩到 0 会非常危险。
-
-因为机器一旦消失，数据库也一起消失。
-
-Neon 之所以能 scale-to-zero，是因为真正的持久化状态一直在独立存储层里。
+如果数据属于 Compute 本机，把 Compute 缩到 0 就意味着数据库跟着机器一起消失。Neon 能 scale-to-zero，是因为持久化状态一直在独立的存储层里。
 
 <figure class="diagram">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500" role="img" aria-label="Neon Scale to Zero：暂停的是计算，不是数据库历史" style="width:100%;height:auto;display:block">
@@ -289,29 +176,13 @@ Neon 之所以能 scale-to-zero，是因为真正的持久化状态一直在独�
 </svg>
 </figure>
 
-当一个 Compute 长时间没有活动时，控制面可以把它挂起。
+Compute 长时间没有活动时，控制面会把它挂起，释放的是 CPU 和内存，数据库历史还在。下一个连接到来时，再启动新的 Compute，接回原来的存储状态。准确地说，Neon 暂停的是执行查询的 Compute，而不是数据库本身。
 
-这时消失的是 CPU 和内存资源，不是数据库历史。
+开发、测试、预览环境最受益，这些库真正执行 SQL 的时间很短，大部分时候只是存在、没人访问。持续有流量的生产系统则不同，官方当前也更建议让生产 Compute 保持在线，通过 autoscaling 在一个最小值和最大值之间动态调整，而不是频繁 scale-to-zero。
 
-下一次连接到来时，再启动新的 Compute，把它重新接到原来的存储状态上。
+## PITR 和历史分支
 
-所以更准确的说法不是“Neon 把数据库暂停了”，而是**Neon 把执行数据库查询的 Compute 暂停了。**
-
-这对于开发、测试、预览环境尤其有价值，因为这些数据库真正执行 SQL 的时间通常很短，大部分时候只是“存在但没人访问”。
-
-对持续有流量的生产系统则不同。官方当前也更建议让生产 Compute 保持在线，通过 autoscaling 在一个最小值和最大值之间动态调整，而不是频繁 scale-to-zero。
-
----
-
-## 七、PITR 为什么能很快
-
-传统数据库做 Point-in-Time Recovery，常见思路是找到一个基础备份，再重放后续 WAL 到目标时间点。
-
-这个过程天然带有“先恢复出一份数据库”的味道。
-
-Neon 的存储模型不一样。
-
-因为 Pageserver 本来就在保存可按 LSN 重建的数据页历史，所以恢复和时间旅行更接近“选择时间轴上的另一个位置”。
+传统数据库做 Point-in-Time Recovery，一般是找到基础备份，再重放后续 WAL 到目标时间点，相当于先恢复出一份数据库。Neon 的 Pageserver 本来就保存着可以按 LSN 重建的页面历史，恢复更像是在时间轴上选另一个位置。
 
 <figure class="diagram">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 590" role="img" aria-label="Neon 通过 WAL 历史和 LSN 支持时间旅行与 PITR" style="width:100%;height:auto;display:block">
@@ -333,35 +204,13 @@ Neon 的存储模型不一样。
 </svg>
 </figure>
 
-如果误删了一张表，不一定要立刻把整个生产库原地回滚。
+比如误删了一张表，不一定要马上把整个生产库原地回滚，可以先从删除前的时间点创建一个 branch，查询旧状态、核对数据，再把需要的部分抽出来。生产数据的历史版本因此不只是出事后才动用的冷备份，日常排障和验证也能用上。
 
-可以先从删除操作之前的时间点创建一个新 branch，查询旧状态，验证目标数据，甚至把需要的数据抽出来。
+## Read Replica
 
-这种能力在排障里非常实用。
+传统 PostgreSQL 的 read replica 通常需要另一份完整的数据副本，并持续接收 WAL。在 Neon 里，多个 Compute 可以面向同一份底层存储工作，每增加一个读节点不必先完整复制一份数据，计算扩展和数据复制就此解耦。当然，读副本仍然需要自己的 CPU、内存和缓存，WAL 应用和可见性延迟也依然存在。
 
-生产数据的历史版本，不再只是灾难发生以后才会使用的冷备份，而可以成为日常调试和验证工具。
-
----
-
-## 八、Read Replica 也因为共享存储发生了变化
-
-传统 PostgreSQL 的 read replica 通常需要另一份完整的数据副本，并持续接收 WAL。
-
-Neon 把持久化数据放在共享的存储系统之后，read replica 的结构也不同。
-
-多个 Compute 可以面向同一份底层存储工作，而不是每增加一个读节点，就先完整复制一份数据库数据。
-
-这会让“计算扩展”和“数据复制”解耦。
-
-当然，读副本仍然需要自己的 CPU、内存和缓存，也仍然存在 WAL 应用和可见性延迟。
-
-但系统不用再把“多一个读 Compute”和“多存一整份数据库”绑定成一件事。
-
----
-
-## 九、Neon 最适合哪些场景
-
-看完架构以后，再看使用场景会更容易理解。
+## 适合哪些场景
 
 <figure class="diagram">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" role="img" aria-label="Neon 的典型使用场景" style="width:100%;height:auto;display:block">
@@ -383,86 +232,20 @@ Neon 把持久化数据放在共享的存储系统之后，read replica 的结�
 </svg>
 </figure>
 
-### 1. 每个 PR 一个数据库
+最直观的是每个 PR 一个数据库：创建 PR 时自动建 branch，跑迁移、集成测试和 preview，合并后删掉分支。比起所有开发者共用一个 staging DB，隔离性好得多，也不容易出现“你的迁移把我的测试数据改坏了”。
 
-这是 Branching 最直观的场景。
+开发、测试和 staging 环境最大的浪费通常是长期闲置的 Compute，正适合 autoscaling 和 scale-to-zero，需要时启动，不需要时把计算缩掉，数据状态照样保留。
 
-代码创建 PR 时自动创建数据库 branch，运行迁移、集成测试和 preview；PR 合并以后删除分支。
+AI Agent 和短生命周期任务也类似。Agent 为了完成一次代码修改，可能启动应用、数据库、测试数据和 preview，然后很快销毁，长期数据库实例很难匹配这种生命周期，branching 加 scale-to-zero 正好对应“环境很多，但绝大多数时间不活跃”。需要给大量客户动态创建 PostgreSQL 环境的 SaaS 和平台型产品同理：数据库通过 API 创建，Compute 按各租户的活动状态单独调整，不用提前为所有客户保留长期运行的实例。
 
-相比所有开发者共用一个 staging DB，这种模式的隔离性更好，也不容易出现“你的迁移把我的测试数据改坏了”。
+流量波峰波谷明显、但全天都持续有请求的生产业务，可以保留最小 Compute，让 Neon 在设定的上下界之间 autoscale。省下的是长期按峰值配置 CPU 和内存的那部分成本。
 
-### 2. 开发、测试和 Staging
+恢复、数据排障和迁移验证也是一类：调查某个历史状态时，从过去的时间点创建 branch；验证一次危险的 schema migration 时，先在生产数据的隔离分支上跑。这比直接操作生产库安全。
 
-非生产数据库通常最大的浪费不是存储，而是长期闲置的 Compute。
+## 不要因为 Serverless 就盲目套用
 
-这些环境很适合 autoscaling 和 scale-to-zero。
+24 小时都有稳定流量的生产业务，频繁休眠没有价值，保持 Compute 在线、用 autoscaling 解决峰值浪费更合理。对第一次连接的尾延迟极其敏感的业务，也要谨慎配置自动挂起：scale-to-zero 意味着下次使用时要重新唤醒 Compute，和一台一直热着的数据库不是同一个延迟模型。
 
-需要时启动，不需要时把计算缩掉，而数据状态仍然保留。
+存算分离也不是没有网络成本。Compute 访问不在本地 buffer cache 中的数据页时，要从存储层获取，缓存命中率、工作集大小和网络存储路径仍然会影响性能。Neon 并不是在所有指标上都比本地盘 PostgreSQL 快。
 
-### 3. AI Agent 和短生命周期任务
-
-Agent 的一个典型特点，是会大量创建临时环境。
-
-一个 Agent 可能为了完成一次代码修改，启动应用、数据库、测试数据和 preview，然后很快销毁。
-
-传统“先申请一台长期数据库实例”的资源模型很难匹配这种生命周期。
-
-Branching + scale-to-zero 刚好对应“环境很多，但绝大多数时间并不活跃”的模式。
-
-### 4. SaaS 和平台型产品
-
-如果你的产品本身需要给大量客户动态创建 PostgreSQL 环境，存算分离也会变得很有吸引力。
-
-数据库可以通过 API 创建，Compute 可以根据不同租户的活动状态单独调整，而不是提前为所有客户保留长期运行的实例。
-
-### 5. 流量波动明显的业务
-
-生产流量如果有明显波峰波谷，但全天都持续有请求，可以保留最小 Compute，再让 Neon 在设定的上下界之间 autoscale。
-
-这里节省的不是“空闲时完全归零”，而是不用长期按照峰值配置 CPU 和内存。
-
-### 6. 恢复、数据排障和迁移验证
-
-需要调查某个历史状态时，可以从过去时间点创建 branch。
-
-需要验证一次危险 schema migration 时，也可以先在生产数据的隔离分支上运行。
-
-相比直接操作生产库，这是一种更安全的工作方式。
-
----
-
-## 十、哪些场景不要因为“Serverless”三个字就盲目套
-
-Neon 并不意味着所有 PostgreSQL 工作负载都应该开启 scale-to-zero。
-
-如果生产业务 24 小时持续有稳定流量，频繁休眠本身就没有价值。更合理的是保持 Compute 在线，用 autoscaling 解决峰值浪费。
-
-如果业务对第一次连接的尾延迟极其敏感，也应该谨慎配置自动挂起。scale-to-zero 一定意味着“下次使用时要重新唤醒 Compute”，这和一台永远热着的数据库不是同一个延迟模型。
-
-另外，存算分离也不是“网络没有成本”。
-
-Compute 访问不在本地 buffer cache 中的数据页时，需要从存储层获取，因此缓存命中率、工作集大小和网络存储路径仍然会影响性能。
-
-所以 Neon 的价值并不是“所有指标都比本地盘 PostgreSQL 更快”。
-
-它真正改变的是**数据库的资源生命周期，不必再和一台机器的生命周期绑定。**
-
----
-
-## 十一、理解 Neon，可以记住四句话
-
-第一，**Postgres Compute 负责算，不负责成为长期数据事实源。**
-
-第二，**Safekeeper 用 WAL 共识守住最新写入，Pageserver 根据 WAL 和历史层构造 Page。**
-
-第三，**因为历史不是原地覆盖，所以同一份存储可以自然支持 Branching 和 PITR。**
-
-第四，**因为数据不属于 Compute，所以 Compute 才能 autoscale、scale-to-zero、快速替换和独立扩展。**
-
-如果只把 Neon 看成“一个便宜的云 PostgreSQL”，很多设计会显得只是产品功能。
-
-但把这些能力放回存算分离、WAL、Page 和非覆盖存储这条主线上，会发现它们其实都是同一个架构选择的不同结果。
-
-Neon 真正重新定义的不是 PostgreSQL 的 SQL 能力。
-
-它重新定义的是：**一份 PostgreSQL 数据，为什么一定要永远属于某一台正在运行的数据库机器。**
+如果只把 Neon 看成一个便宜的云 PostgreSQL，autoscaling、scale-to-zero、Branching、PITR、read replica 会像一组互不相关的产品功能。我的理解是，把它们放回存算分离、WAL、Page 和非覆盖存储这条线上，都是同一个架构选择的结果：一份 PostgreSQL 数据，不必再永远属于某一台正在运行的数据库机器。
