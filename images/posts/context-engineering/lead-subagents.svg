@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" role="img" aria-labelledby="title">
+<title id="title">Lead Agent 与子 Agent 的研究任务分工</title>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#687d96"/></marker></defs>
+<rect width="800" height="480" rx="16" fill="#f6f8fc"/>
+<g fill="none" stroke="#687d96" stroke-width="2" marker-end="url(#arrow)">
+<path d="M 400 96 V 136"/>
+<path d="M 290 208 V 244 H 140 V 276"/>
+<path d="M 400 208 V 276"/>
+<path d="M 510 208 V 244 H 660 V 276"/>
+<path d="M 140 276 V 244 H 290 V 208"/>
+<path d="M 400 276 V 208"/>
+<path d="M 660 276 V 244 H 510 V 208"/>
+<path d="M 235 172 H 14 V 368 H 400 V 392"/>
+</g>
+<g font-family="system-ui, -apple-system, BlinkMacSystemFont, sans-serif" text-anchor="middle">
+<rect x="280" y="24" width="240" height="72" rx="10" fill="#fff" stroke="#c9d7e8"/>
+<text x="400.0" y="54" font-size="18" font-weight="600" fill="#264e7c">用户问题</text>
+<text x="400.0" y="77" font-size="14" fill="#52657c">确定研究目标</text>
+<rect x="235" y="136" width="330" height="72" rx="10" fill="#fff" stroke="#c9d7e8"/>
+<text x="400.0" y="166" font-size="18" font-weight="600" fill="#264e7c">Lead Agent</text>
+<text x="400.0" y="189" font-size="14" fill="#52657c">拆分任务与汇总结果</text>
+<rect x="30" y="276" width="220" height="72" rx="10" fill="#fff" stroke="#c9d7e8"/>
+<text x="140.0" y="306" font-size="18" font-weight="600" fill="#264e7c">PDF Researcher</text>
+<text x="140.0" y="329" font-size="14" fill="#52657c">搜索论文与文档</text>
+<rect x="290" y="276" width="220" height="72" rx="10" fill="#fff" stroke="#c9d7e8"/>
+<text x="400.0" y="306" font-size="18" font-weight="600" fill="#264e7c">Web Researcher</text>
+<text x="400.0" y="329" font-size="14" fill="#52657c">检索网页与新闻</text>
+<rect x="550" y="276" width="220" height="72" rx="10" fill="#fff" stroke="#c9d7e8"/>
+<text x="660.0" y="306" font-size="18" font-weight="600" fill="#264e7c">Image Researcher</text>
+<text x="660.0" y="329" font-size="14" fill="#52657c">查找图片或图表</text>
+<rect x="280" y="392" width="240" height="72" rx="10" fill="#fff" stroke="#c9d7e8"/>
+<text x="400.0" y="422" font-size="18" font-weight="600" fill="#264e7c">最终报告</text>
+<text x="400.0" y="445" font-size="14" fill="#52657c">汇总证据、冲突与不确定性</text>
+</g>
+</svg>

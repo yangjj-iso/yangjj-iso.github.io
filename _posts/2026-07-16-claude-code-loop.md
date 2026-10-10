@@ -2,9 +2,13 @@
 layout: post
 title: "Claude Code 中的 Loop"
 description: "梳理 Claude Code 中四类 loop 的触发方式、停止条件、适用场景，以及代码质量与 token 用量的控制方法。"
-date: 2026-07-05
+date: 2026-07-16
 tags: [Claude Code, Agent, Loop]
 ---
+
+原文来源：[ClaudeDevs on X](https://x.com/ClaudeDevs/status/2074208949205881033)
+
+说明：本文为中文翻译，命令、原语名与代码标识符保持英文原文。
 
 最近大家谈得比较多的是“设计 loop”，而不是只给 coding agent 写 prompt。如果你在 X 上花点时间找“loop 到底是什么”，会看到好几种不同说法。
 
@@ -182,5 +186,3 @@ loop 输出质量取决于它周围的系统。设计系统时：
 有想法后，就运行这个 loop，观察它在哪里卡住、在哪里越界，并大胆迭代它。
 
 更多信息，请阅读 Claude Code 文档中关于并行运行 agent 的内容，以及 `loop`、`schedule`、`goal` 和 dynamic workflows 相关页面。
-
-> 原文来源：[ClaudeDevs on X](https://x.com/ClaudeDevs/status/2074208949205881033)  
