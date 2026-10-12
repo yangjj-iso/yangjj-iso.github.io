@@ -20,7 +20,7 @@ tags: [开源, GitHub, 软件工程, 协作, Git]
 
 事实上，在任何成熟的开源生态中，**代码只占项目生命力的一半**。一个健康的社区不仅需要实现复杂特性的代码贡献者，同样渴求细致入微的测试反馈、清晰易读的文档补充、甚至是逻辑严谨的 Bug 复现报告。
 
-\!\[开源贡献者的成长阶梯：从使用者到核心维护者的阶梯式演进\]({{ "/images/posts/how-to-open-source/contributor-journey.svg" | relative_url }})
+![开源贡献者的成长阶梯：从使用者到核心维护者的阶梯式演进]({{ "/images/posts/how-to-open-source/contributor-journey.svg" | relative_url }})
 
 我们可以把开源贡献者的成长路径划分为五个递进的台阶：
 
@@ -80,7 +80,7 @@ tags: [开源, GitHub, 软件工程, 协作, Git]
 
 要优雅地在 GitHub 上协作，必须理解 **三层仓库空间拓扑** 与标准闭环操作流程：
 
-\!\[GitHub 协同标准闭环：Upstream、Origin 与 Local 的三层拓扑与交互流\]({{ "/images/posts/how-to-open-source/git-collaboration-workflow.svg" | relative_url }})
+![GitHub 协同标准闭环：Upstream、Origin 与 Local 的三层拓扑与交互流]({{ "/images/posts/how-to-open-source/git-collaboration-workflow.svg" | relative_url }})
 
 ### 核心空间拓扑定义
 
@@ -204,7 +204,7 @@ git push -u origin feat/add-rate-limiter
 
 一个经得起检验的高水准开源仓库，应当由以下四大支柱模块构成：
 
-\!\[高品质开源仓库的标准结构全景图：门面、治理、自动化与核心代码四大支柱\]({{ "/images/posts/how-to-open-source/repo-standard-anatomy.svg" | relative_url }})
+![高品质开源仓库的标准结构全景图：门面、治理、自动化与核心代码四大支柱]({{ "/images/posts/how-to-open-source/repo-standard-anatomy.svg" | relative_url }})
 
 ### 1. 门面展示与引导 (Showcase & Identity)
 
@@ -249,7 +249,7 @@ git push -u origin feat/add-rate-limiter
 
 其实核心决策逻辑非常简单，主要围绕两个核心分水岭展开：**“是否允许闭源商用”** 以及 **“是否具有代码传染性”**。
 
-\!\[常见开源许可证选型决策树：宽松型与传染型的关键权衡\]({{ "/images/posts/how-to-open-source/license-decision-tree.svg" | relative_url }})
+![常见开源许可证选型决策树：宽松型与传染型的关键权衡]({{ "/images/posts/how-to-open-source/license-decision-tree.svg" | relative_url }})
 
 ### 宽松型许可证 (Permissive)
 
