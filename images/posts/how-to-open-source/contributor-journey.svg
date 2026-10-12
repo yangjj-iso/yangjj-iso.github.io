@@ -1,94 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 520" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 356" width="760" height="356">
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif; }
+    .mono { font-family: 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace; }
+    .halo { paint-order: stroke; stroke: #fbfbfb; stroke-width: 5px; stroke-linejoin: round; }
+  </style>
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#f8fafc"/>
-      <stop offset="100%" stop-color="#f1f5f9"/>
-    </linearGradient>
-    <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.05"/>
-    </filter>
-    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#64748b"/>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M1 1.5 9 5 1 8.5z" fill="#8a949b"/>
+    </marker>
+    <marker id="ah-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M1 1.5 9 5 1 8.5z" fill="#2d72d9"/>
     </marker>
   </defs>
-
-  <!-- Background -->
-  <rect width="860" height="520" rx="16" fill="url(#bgGrad)" stroke="#e2e8f0" stroke-width="1.5"/>
-
-  <!-- Header -->
-  <g font-family="system-ui, -apple-system, sans-serif">
-    <text x="40" y="44" font-size="20" font-weight="700" fill="#0f172a">开源贡献者的成长阶梯 (The Contributor Growth Ladder)</text>
-    <text x="40" y="68" font-size="13" fill="#64748b">从使用者到核心维护者：阶梯式递进与影响力扩展</text>
-  </g>
-
-  <!-- Step Cards (Staircase progression from bottom-left to top-right) -->
-  <!-- Level 1: 深度使用者 -->
-  <g transform="translate(40, 360)" filter="url(#cardShadow)" font-family="system-ui, -apple-system, sans-serif">
-    <rect width="144" height="120" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
-    <rect x="10" y="10" width="48" height="20" rx="4" fill="#f1f5f9"/>
-    <text x="34" y="24" font-size="11" font-weight="700" fill="#475569" text-anchor="middle">LV.1</text>
-    <text x="12" y="50" font-size="14" font-weight="700" fill="#1e293b">深度使用者</text>
-    <text x="12" y="72" font-size="11" fill="#64748b">• 真实场景验证</text>
-    <text x="12" y="88" font-size="11" fill="#64748b">• 发现边界与痛点</text>
-    <text x="12" y="104" font-size="11" fill="#64748b">• 沉淀最小复现(MRE)</text>
-  </g>
-
-  <!-- Level 2: 规范反馈者 -->
-  <g transform="translate(200, 295)" filter="url(#cardShadow)" font-family="system-ui, -apple-system, sans-serif">
-    <rect width="144" height="120" rx="10" fill="#ffffff" stroke="#93c5fd" stroke-width="1.5"/>
-    <rect x="10" y="10" width="48" height="20" rx="4" fill="#dbeafe"/>
-    <text x="34" y="24" font-size="11" font-weight="700" fill="#1d4ed8" text-anchor="middle">LV.2</text>
-    <text x="12" y="50" font-size="14" font-weight="700" fill="#1e293b">严谨反馈者</text>
-    <text x="12" y="72" font-size="11" fill="#64748b">• 遵循 Issue 模板</text>
-    <text x="12" y="88" font-size="11" fill="#64748b">• 完整错误与环境栈</text>
-    <text x="12" y="104" font-size="11" fill="#64748b">• 配合维护者验证测试</text>
-  </g>
-
-  <!-- Level 3: 文档/微贡献者 -->
-  <g transform="translate(360, 230)" filter="url(#cardShadow)" font-family="system-ui, -apple-system, sans-serif">
-    <rect width="144" height="120" rx="10" fill="#ffffff" stroke="#86efac" stroke-width="1.5"/>
-    <rect x="10" y="10" width="48" height="20" rx="4" fill="#dcfce7"/>
-    <text x="34" y="24" font-size="11" font-weight="700" fill="#15803d" text-anchor="middle">LV.3</text>
-    <text x="12" y="50" font-size="14" font-weight="700" fill="#1e293b">轻量贡献者</text>
-    <text x="12" y="72" font-size="11" fill="#64748b">• 修复错别字与文档</text>
-    <text x="12" y="88" font-size="11" fill="#64748b">• 领 Good First Issue</text>
-    <text x="12" y="104" font-size="11" fill="#64748b">• 跑通首个完整 PR</text>
-  </g>
-
-  <!-- Level 4: 核心代码贡献者 -->
-  <g transform="translate(520, 165)" filter="url(#cardShadow)" font-family="system-ui, -apple-system, sans-serif">
-    <rect width="144" height="120" rx="10" fill="#ffffff" stroke="#fcd34d" stroke-width="1.5"/>
-    <rect x="10" y="10" width="48" height="20" rx="4" fill="#fef3c7"/>
-    <text x="34" y="24" font-size="11" font-weight="700" fill="#b45309" text-anchor="middle">LV.4</text>
-    <text x="12" y="50" font-size="14" font-weight="700" fill="#1e293b">功能贡献者</text>
-    <text x="12" y="72" font-size="11" fill="#64748b">• 深入业务/内核实现</text>
-    <text x="12" y="88" font-size="11" fill="#64748b">• 补齐自动化单元测试</text>
-    <text x="12" y="104" font-size="11" fill="#64748b">• 配合 Code Review</text>
-  </g>
-
-  <!-- Level 5: 审阅与维护者 -->
-  <g transform="translate(680, 100)" filter="url(#cardShadow)" font-family="system-ui, -apple-system, sans-serif">
-    <rect width="144" height="120" rx="10" fill="#ffffff" stroke="#c084fc" stroke-width="1.5"/>
-    <rect x="10" y="10" width="48" height="20" rx="4" fill="#f3e8ff"/>
-    <text x="34" y="24" font-size="11" font-weight="700" fill="#7e22ce" text-anchor="middle">LV.5</text>
-    <text x="12" y="50" font-size="14" font-weight="700" fill="#1e293b">核心维护者</text>
-    <text x="12" y="72" font-size="11" fill="#64748b">• 审阅他人 PR / Triage</text>
-    <text x="12" y="88" font-size="11" fill="#64748b">• 制定路线图 (Roadmap)</text>
-    <text x="12" y="104" font-size="11" fill="#64748b">• 建设友善包容生态</text>
-  </g>
-
-  <!-- Connector Stairs / Flow Path -->
-  <g fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#arrow)">
-    <path d="M 184 415 L 196 415 L 196 355"/>
-    <path d="M 344 350 L 356 350 L 356 290"/>
-    <path d="M 504 285 L 516 285 L 516 225"/>
-    <path d="M 664 220 L 676 220 L 676 160"/>
-  </g>
-
-  <!-- Key Mindset Shift Box at bottom -->
-  <g transform="translate(40, 440)" font-family="system-ui, -apple-system, sans-serif">
-    <rect width="784" height="52" rx="8" fill="#e0f2fe" stroke="#7dd3fc" stroke-width="1"/>
-    <text x="16" y="24" font-size="12" font-weight="700" fill="#0369a1">💡 心态认知升级 (Key Mindset):</text>
-    <text x="16" y="42" font-size="12" fill="#0f172a">开源不仅是“交代码”，更是“异步协同工程”。一份详尽的 Bug 复现、一次文档错漏修补，与一个核心 Feature 的代码贡献同样宝贵。</text>
-  </g>
+  <rect x="20" y="186" width="136" height="114" rx="8" fill="#eef4fc"/>
+  <text x="36" y="214" font-size="12" fill="#2d72d9" font-weight="700" letter-spacing="1">LV.1</text>
+  <text x="36" y="240" font-size="16" fill="#2c343c" font-weight="700">深度使用者</text>
+  <text x="36" y="266" font-size="13" fill="#4a535a">真实地用起来</text>
+  <text x="36" y="285" font-size="13" fill="#4a535a">做出最小复现</text>
+  <rect x="166" y="148" width="136" height="152" rx="8" fill="#dfeaf9"/>
+  <text x="182" y="176" font-size="12" fill="#2d72d9" font-weight="700" letter-spacing="1">LV.2</text>
+  <text x="182" y="202" font-size="16" fill="#2c343c" font-weight="700">严谨反馈者</text>
+  <text x="182" y="228" font-size="13" fill="#4a535a">提一个信息齐全</text>
+  <text x="182" y="247" font-size="13" fill="#4a535a">的 Issue</text>
+  <rect x="312" y="110" width="136" height="190" rx="8" fill="#cbdcf5"/>
+  <text x="328" y="138" font-size="12" fill="#2d72d9" font-weight="700" letter-spacing="1">LV.3</text>
+  <text x="328" y="164" font-size="16" fill="#2c343c" font-weight="700">轻量贡献者</text>
+  <text x="328" y="190" font-size="13" fill="#4a535a">修文档、领</text>
+  <text x="328" y="209" font-size="13" fill="#4a535a">Good First Issue</text>
+  <rect x="458" y="72" width="136" height="228" rx="8" fill="#a9c6ef"/>
+  <text x="474" y="100" font-size="12" fill="#2d72d9" font-weight="700" letter-spacing="1">LV.4</text>
+  <text x="474" y="126" font-size="16" fill="#2c343c" font-weight="700">功能贡献者</text>
+  <text x="474" y="152" font-size="13" fill="#4a535a">先讨论方案</text>
+  <text x="474" y="171" font-size="13" fill="#4a535a">再写代码和测试</text>
+  <rect x="604" y="34" width="136" height="266" rx="8" fill="#2d72d9"/>
+  <text x="620" y="62" font-size="12" fill="#ffffff" font-weight="700" letter-spacing="1">LV.5</text>
+  <text x="620" y="88" font-size="16" fill="#ffffff" font-weight="700">维护者</text>
+  <text x="620" y="114" font-size="13" fill="#e6effb">Review、Triage</text>
+  <text x="620" y="133" font-size="13" fill="#e6effb">规划与发版</text>
+  <path d="M20 312 V318 H448 V312" fill="none" stroke="#d9dee2" stroke-width="1.5"/>
+  <text x="234.0" y="342" font-size="13" fill="#8a949b" text-anchor="middle">这三级都不需要碰核心代码</text>
+  <path d="M458 312 V318 H740 V312" fill="none" stroke="#d9dee2" stroke-width="1.5"/>
+  <text x="599.0" y="342" font-size="13" fill="#8a949b" text-anchor="middle">开始写代码，并承担维护</text>
 </svg>

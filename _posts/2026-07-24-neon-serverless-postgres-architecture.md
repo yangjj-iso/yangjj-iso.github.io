@@ -1,23 +1,40 @@
 ---
 layout: post
-title: "Neon 不只是 Serverless PostgreSQL：存算分离如何带来弹性、分支与时间旅行"
-description: "从 Compute、Safekeeper、Pageserver 和对象存储出发，理解 Neon 为什么能让 PostgreSQL 的计算层可启停、可扩缩，同时原生支持数据库分支、PITR 和按需计算。"
+title: "Neon 的核心创新：把数据库日志（WAL/Binlog）从辅助产物提升为唯一事实源"
+description: "在传统架构中，Binlog 和 WAL 只是主从同步与崩溃恢复的二等公民。Neon 彻底反转了这一范式：将不可变日志流作为数据库唯一事实源，从而在存储引擎层解锁了秒级分支、零拷贝时间旅行与计算层 Scale-to-Zero。"
 date: 2026-07-24
-tags: [PostgreSQL, Neon, 数据库, Serverless]
+tags: [PostgreSQL, Neon, 数据库, 存储引擎, WAL, Binlog, Serverless]
 ---
 
-第一次接触 Neon，很容易把它当成“一个会自动休眠的 PostgreSQL”。scale-to-zero 确实是最直观的体验，但它只是结果。Neon 实际做的，是把传统 PostgreSQL 里绑在一起的计算和持久化拆开：Postgres 只负责执行 SQL，数据和历史交给独立的存储层。
+在大多数后端开发者的日常认知里，数据库日志（无论是 MySQL 的 Binlog、InnoDB Redo Log，还是 PostgreSQL 的 WAL）始终扮演着一个**“工具人”**的角色：
+
+- 做主从复制时，通过 Binlog 传给从库回放；
+- 做数据订阅与异构同步时，让 Canal 或 Flink CDC 监听 Binlog；
+- 发生系统崩溃时，依赖 WAL / Redo Log 做 ARIES 算法的重放与故障恢复；
+- 误删数据时，翻出前天夜里的全备，再从 Binlog 找到对应的 Position 一行行反解析。
+
+在这些传统场景中，**日志永远是“二等公民”**。数据库真正的“本体”依然是磁盘上那堆沉重、易碎、被原地覆写（in-place update）的数据页（Data Pages / Tablespace）。正因为数据页与特定的机器磁盘死死绑在一起，数据库的扩缩容、高可用切换、快照备份才变得如此笨重。
+
+开源云原生数据库 **Neon** 带来的最深刻变革，表面上看是“让 PostgreSQL 能够自动休眠（Scale-to-Zero）”，但其底层真正的架构革命，恰恰在于**对数据库预写式日志（WAL / Binlog）的颠覆性重构**——它践行了分布式系统领域最优雅的哲学：**“The Log IS the Database”（日志即数据库）**。
+
+本文将从传统数据库日志的工程困境出发，深度剖析 Neon 是如何将日志从辅助同步产物提升为核心存储基石，并由此解锁分布式共识、按日志重构页面、Git 式秒级分支与无锁时间旅行的。
 
 <!--more-->
 
-持久化数据不再属于某一台 Postgres 机器以后，计算节点就可以随时启动、停止、换机器和扩缩容，而数据库历史仍然独立存在。autoscaling、scale-to-zero、database branching、read replica 和 point-in-time restore，都是从这一步架构变化推出来的。
+---
 
-## 传统 PostgreSQL 为什么难做成 Serverless
+## 传统架构中日志的尴尬定位
 
-传统 PostgreSQL 的模型很直接：一台机器上跑着 Postgres 进程，内存里有 shared buffers，下面挂着自己的数据目录。表和索引落成数据页，修改先生成 WAL，再由数据库把状态安全写到存储设备。计算和持久化状态属于同一个实例，所以换机器、扩容或缩容时，不能只关心 CPU 和内存，还得保证数据目录、WAL、恢复过程和副本关系都能接着工作。
+在深入 Neon 之前，我们不妨先回顾一下传统单机数据库（如 MySQL 或原生 PostgreSQL）是如何使用日志的。
+
+在传统存储引擎（以 InnoDB 或 Postgres Heap 为例）中，写操作的生命周期如下：
+1. 内存中的数据页被修改，产生**脏页（Dirty Page）**；
+2. 为了保证事务持久性（Durability）且不阻塞在慢速的随机写上，引擎先将本次修改以追加写（Append-only）的方式写入日志（Postgres 写 WAL，MySQL 写 Redo Log 并配合二阶段提交写 Binlog）；
+3. 日志刷盘（`fsync`）成功后，事务即可向客户端返回成功；
+4. 后台的 Checkpointer 线程在适当时机将内存中的脏页异步刷入磁盘的数据文件（`tablespace`）。
 
 <figure class="diagram">
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" role="img" aria-label="传统 PostgreSQL 与 Neon 存算分离架构对比" style="width:100%;height:auto;display:block">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" role="img" aria-label="传统数据库与 Neon 存算分离架构对比" style="width:100%;height:auto;display:block">
 <defs>
   <marker id="n1-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L10,5 L0,10 z" fill="#374151"/></marker>
   <style>
@@ -32,15 +49,23 @@ tags: [PostgreSQL, Neon, 数据库, Serverless]
   </style>
 </defs>
 <rect width="1200" height="480" fill="#fff"/>
-<text x="300" y="45" text-anchor="middle" class="n1-t" font-size="25" font-weight="700"><tspan x="300" dy="0">传统 PostgreSQL</tspan></text><rect x="75" y="95" width="450" height="110" rx="12" class="n1-warn"/><text x="300" y="142.96499999999997" text-anchor="middle" class="n1-t" font-size="21" font-weight="500"><tspan x="300" dy="0">Postgres</tspan><tspan x="300" dy="28.35">CPU + RAM + 本地数据目录</tspan></text><rect x="135" y="270" width="330" height="85" rx="12" class="n1-box"/><text x="300" y="305.8" text-anchor="middle" class="n1-t" font-size="20" font-weight="500"><tspan x="300" dy="0">本地 / 块存储</tspan><tspan x="300" dy="27">数据页 + WAL</tspan></text><path d="M300 205 L300 255" class="n1-line" marker-end="url(#n1-arrow)"/><text x="300" y="420" text-anchor="middle" class="n1-t" font-size="20" font-weight="500"><tspan x="300" dy="0">计算和持久化状态绑在一起</tspan><tspan x="300" dy="30">换机器、扩缩容、复制都要搬数据</tspan></text><text x="900" y="45" text-anchor="middle" class="n1-t" font-size="25" font-weight="700"><tspan x="900" dy="0">Neon</tspan></text><rect x="700" y="90" width="400" height="95" rx="12" class="n1-ok"/><text x="900" y="130.465" text-anchor="middle" class="n1-t" font-size="21" font-weight="500"><tspan x="900" dy="0">Compute</tspan><tspan x="900" dy="28.35">Postgres 执行 SQL</tspan></text><path d="M900 185 L900 245" class="n1-line" marker-end="url(#n1-arrow)"/><rect x="675" y="260" width="450" height="100" rx="12" class="n1-soft"/><text x="900" y="303.3" text-anchor="middle" class="n1-t" font-size="20" font-weight="500"><tspan x="900" dy="0">Distributed Storage</tspan><tspan x="900" dy="27">WAL + Pages + Object Storage</tspan></text><text x="900" y="420" text-anchor="middle" class="n1-t" font-size="20" font-weight="500"><tspan x="900" dy="0">计算可以启动、停止、迁移和扩缩</tspan><tspan x="900" dy="30">持久化状态独立存在</tspan></text>
+<text x="300" y="45" text-anchor="middle" class="n1-t" font-size="25" font-weight="700"><tspan x="300" dy="0">传统数据库：以“页面”为核心</tspan></text><rect x="75" y="95" width="450" height="110" rx="12" class="n1-warn"/><text x="300" y="142.96" text-anchor="middle" class="n1-t" font-size="21" font-weight="500"><tspan x="300" dy="0">单机数据库进程</tspan><tspan x="300" dy="28.35">计算 + Buffer Pool + 本地数据目录</tspan></text><rect x="135" y="270" width="330" height="85" rx="12" class="n1-box"/><text x="300" y="305.8" text-anchor="middle" class="n1-t" font-size="20" font-weight="500"><tspan x="300" dy="0">本地块存储</tspan><tspan x="300" dy="27">数据页覆写 + 临时 WAL/Binlog</tspan></text><path d="M300 205 L300 255" class="n1-line" marker-end="url(#n1-arrow)"/><text x="300" y="420" text-anchor="middle" class="n1-t" font-size="20" font-weight="500"><tspan x="300" dy="0">日志仅用于临时保命与回放</tspan><tspan x="300" dy="30">一旦脏页刷盘，日志随即被截断丢弃</tspan></text><text x="900" y="45" text-anchor="middle" class="n1-t" font-size="25" font-weight="700"><tspan x="900" dy="0">Neon：以“不可变日志流”为核心</tspan></text><rect x="700" y="90" width="400" height="95" rx="12" class="n1-ok"/><text x="900" y="130.46" text-anchor="middle" class="n1-t" font-size="21" font-weight="500"><tspan x="900" dy="0">Compute (无状态计算)</tspan><tspan x="900" dy="28.35">解析 SQL，只产生日志流，无持久化磁盘</tspan></text><path d="M900 185 L900 245" class="n1-line" marker-end="url(#n1-arrow)"/><rect x="675" y="260" width="450" height="100" rx="12" class="n1-soft"/><text x="900" y="303.3" text-anchor="middle" class="n1-t" font-size="20" font-weight="500"><tspan x="900" dy="0">Log-Centric Storage</tspan><tspan x="900" dy="27">Paxos 日志仲裁 + 按 LSN 动态物化数据页</tspan></text><text x="900" y="420" text-anchor="middle" class="n1-t" font-size="20" font-weight="500"><tspan x="900" dy="0">日志成为唯一的全局状态事实源</tspan><tspan x="900" dy="30">计算节点随用随启，数据页按需即时重构</tspan></text>
 </svg>
 </figure>
 
-对单机数据库来说，这种结构简单、成熟。麻烦出在云上波峰波谷明显的负载：为了高峰期的 8 核 CPU，你可能要让一台 8 核机器全天运行；为了 2 TB 数据，又不能因为半夜没有 SQL 就把整台数据库删掉重建。Neon 的做法是保留 PostgreSQL 的执行引擎，把长期存储拆出去。
+这种传统模型带来了三个无法逾越的工程痛点：
 
-## 架构：WAL 和 Page 分开处理
+1. **日志的“生命周期短视”**：日志的存在只是为了在系统重启时把脏页“救回来”。一旦 Checkpointer 把脏页安全写入磁盘，旧日志就会被无情截断（Truncate）删除。为了做数据分析或灾难恢复，运维不得不把 binlog 备份到外部冷存储，但这些备份与主数据库是割裂的。
+2. **严重的写放大与 IO 抖动**：即使一个事务只修改了一行记录的几个字节，事务提交要写日志，稍后 Checkpoint 还要把整整一个 8KB 或 16KB 的数据页完整写入磁盘。遇到高峰期 Checkpoint 刷盘，系统极易产生严重 IO 抖动。
+3. **状态与计算硬绑定**：数据页存在机器本地，换机器就必须搬迁几十甚至几百 GB 的数据文件。想要搞环境隔离或测试分支，只能做全量物理备份恢复（xtrabackup / pg_basebackup），面对大库动辄数小时。
 
-Neon 的 Compute 仍然运行 PostgreSQL，负责解析 SQL、执行计划、事务、索引访问和 buffer cache，只是不再把本地数据目录当作长期事实源。持久化状态放进独立的分布式存储层，由三类角色分担。
+Neon 的颠覆之处在于：**彻底丢弃计算节点上的“本地数据页文件”**。数据库的每一次写，只产生不可变的日志；而数据库当前的“数据状态”，只是日志流在某一刻的数学投影。
+
+---
+
+## 架构重塑：解耦日志持久化与页面物化
+
+为了将日志提升为系统的核心事实源，Neon 将原先单机中的组件解耦为三个独立的分布式角色：**Compute**（计算层）、**Safekeeper**（日志仲裁层）和 **Pageserver**（页面物化与历史存储层）。
 
 <figure class="diagram">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 770" role="img" aria-label="Neon 的 Compute、Safekeeper、Pageserver 与对象存储" style="width:100%;height:auto;display:block">
@@ -58,21 +83,28 @@ Neon 的 Compute 仍然运行 PostgreSQL，负责解析 SQL、执行计划、事
   </style>
 </defs>
 <rect width="1200" height="770" fill="#fff"/>
-<rect x="455" y="45" width="290" height="90" rx="12" class="n2-ok"/><text x="600" y="82.63000000000001" text-anchor="middle" class="n2-t" font-size="22" font-weight="500"><tspan x="600" dy="0">Compute</tspan><tspan x="600" dy="29.700000000000003">Postgres</tspan></text><text x="600" y="172" text-anchor="middle" class="n2-t" font-size="18" font-weight="650"><tspan x="600" dy="0">写 WAL</tspan></text><path d="M540 135 L300 240" class="n2-line" marker-end="url(#n2-arrow)"/><rect x="90" y="250" width="420" height="115" rx="12" class="n2-warn"/><text x="300" y="300.8" text-anchor="middle" class="n2-t" font-size="20" font-weight="500"><tspan x="300" dy="0">Safekeepers</tspan><tspan x="300" dy="27">复制 WAL · 共识 · 提交持久化</tspan></text><text x="860" y="172" text-anchor="middle" class="n2-t" font-size="18" font-weight="650"><tspan x="860" dy="0">读 Page</tspan></text><path d="M660 135 L900 240" class="n2-line" marker-end="url(#n2-arrow)"/><rect x="690" y="250" width="420" height="115" rx="12" class="n2-soft"/><text x="900" y="300.8" text-anchor="middle" class="n2-t" font-size="20" font-weight="500"><tspan x="900" dy="0">Pageserver</tspan><tspan x="900" dy="27">按 LSN 重建并服务数据页</tspan></text><path d="M300 365 L500 470" class="n2-line" marker-end="url(#n2-arrow)"/><path d="M900 365 L700 470" class="n2-line" marker-end="url(#n2-arrow)"/><rect x="390" y="485" width="420" height="105" rx="12" class="n2-box"/><text x="600" y="530.8" text-anchor="middle" class="n2-t" font-size="20" font-weight="500"><tspan x="600" dy="0">Object Storage</tspan><tspan x="600" dy="27">长期保存不可变历史</tspan></text><text x="600" y="665" text-anchor="middle" class="n2-t" font-size="21" font-weight="600"><tspan x="600" dy="0">Safekeeper 解决“新写入先安全落下”</tspan><tspan x="600" dy="32">Pageserver 解决“查询需要哪个版本的数据页”</tspan><tspan x="600" dy="32">Object Storage 负责长期、低成本持久化</tspan></text>
+<rect x="455" y="45" width="290" height="90" rx="12" class="n2-ok"/><text x="600" y="82.63" text-anchor="middle" class="n2-t" font-size="22" font-weight="500"><tspan x="600" dy="0">Compute (PostgreSQL)</tspan><tspan x="600" dy="29.7">无本地数据盘 · 内存执行 SQL</tspan></text><text x="600" y="172" text-anchor="middle" class="n2-t" font-size="18" font-weight="650"><tspan x="600" dy="0">① 仅推送 WAL 日志流</tspan></text><path d="M540 135 L300 240" class="n2-line" marker-end="url(#n2-arrow)"/><rect x="90" y="250" width="420" height="115" rx="12" class="n2-warn"/><text x="300" y="300.8" text-anchor="middle" class="n2-t" font-size="20" font-weight="500"><tspan x="300" dy="0">Safekeepers (Paxos 共识集群)</tspan><tspan x="300" dy="27">日志持久化仲裁 · 决定提交确认</tspan></text><text x="860" y="172" text-anchor="middle" class="n2-t" font-size="18" font-weight="650"><tspan x="860" dy="0">④ 缺失页按 LSN 按需拉取</tspan></text><path d="M660 135 L900 240" class="n2-line" marker-end="url(#n2-arrow)"/><rect x="690" y="250" width="420" height="115" rx="12" class="n2-soft"/><text x="900" y="300.8" text-anchor="middle" class="n2-t" font-size="20" font-weight="500"><tspan x="900" dy="0">Pageserver (页面物化服务)</tspan><tspan x="900" dy="27">消费日志 · 索引 LSN · 动态拼装页面</tspan></text><path d="M300 365 L500 470" class="n2-line" marker-end="url(#n2-arrow)"/><text x="375" y="435" text-anchor="middle" class="n2-t" font-size="16" font-weight="600"><tspan x="375" dy="0">② 异步推流</tspan></text><path d="M900 365 L700 470" class="n2-line" marker-end="url(#n2-arrow)"/><text x="825" y="435" text-anchor="middle" class="n2-t" font-size="16" font-weight="600"><tspan x="825" dy="0">③ 冷层归档</tspan></text><rect x="390" y="485" width="420" height="105" rx="12" class="n2-box"/><text x="600" y="530.8" text-anchor="middle" class="n2-t" font-size="20" font-weight="500"><tspan x="600" dy="0">S3 / 对象存储</tspan><tspan x="600" dy="27">存储不可变历史分层 · 成本极致优化</tspan></text><text x="600" y="665" text-anchor="middle" class="n2-t" font-size="21" font-weight="600"><tspan x="600" dy="0">核心分工：Safekeeper 保证“写入日志在多数派中永不丢失”</tspan><tspan x="600" dy="32">Pageserver 负责“将日志还原为任意历史版本的数据页”</tspan><tspan x="600" dy="32">两者解耦，使得提交只等日志共识，完全脱离数据页物化</tspan></text>
 </svg>
 </figure>
 
-Compute 有 CPU、内存、shared buffers，也可以有本地缓存，但数据库的长期正确性不依赖这些。Compute 挂掉以后，要恢复的只是一个新的 PostgreSQL 执行环境，不需要先把整个数据库文件系统搬到新机器。
+### 1. Compute：纯粹的无状态查询计算节点
+Compute 仍然运行官方 PostgreSQL 进程，保留了完整的查询优化器、事务隔离、执行计划与 Buffer Pool。
+但它做了关键改造：**去掉了本地的数据文件存储**。当用户发起写入时，Compute 只生成 WAL 日志流；当发生缓存未命中（Cache Miss）需要读取某个数据页时，它不再从本地文件系统的磁盘扇区读取，而是向底层的 Pageserver 发起 RPC 请求。
 
-Safekeeper 负责 WAL 的持久化。事务不依赖 Compute 本机把 WAL 刷进自己的磁盘，而是把 WAL 发给多个 Safekeeper，由它们通过共识确认 WAL 已经有足够的持久化副本。所以**客户端收到 COMMIT 成功时，WAL 已经被可靠保存，但数据页不一定写进了对象存储。**
+### 2. Safekeeper：专职的分布式日志保镖（Paxos Quorum）
+在传统 MySQL 中，半同步复制（Semi-Sync）需要主库将 Binlog 传给至少一个从库确认；而 Neon 将这一机制做成了高可用专用的分布式日志集群。
+多个 Safekeeper 节点组成共识组（通常为 3 节点）。当 Compute 产生新的 WAL 时，它同时推向 Safekeeper 集群。只要达到多数派确认（Quorum Ack），即代表该段日志已安全持久化。
 
-Pageserver 负责把 WAL 重新变成数据页。查询最终读的是 PostgreSQL 的数据页而不是 WAL，Pageserver 根据已有的页面版本加上之后的 WAL 变化，构造出 Compute 此刻需要的页，当前状态和历史状态都能服务。
+### 3. Pageserver：将日志流动态重组为“时空矩阵”
+Pageserver 是 Neon 最具技术特色的组件。它异步从 Safekeeper 处消费日志流，但不像普通从库那样机械地原地重放覆盖。
+相反，Pageserver 将日志切片索引化，建立起 **`[Page ID, LSN]`** 的多维索引树。当 Compute 请求“请给我第 42 号页面在 LSN=1000 时的内容”时，Pageserver 能够根据基准镜像与日志增量瞬间计算出该数据页。
 
-对象存储负责长期、可扩展的持久化。Pageserver 可以把热数据留在更快的本地 SSD / NVMe 上，较冷的不可变层进入对象存储。
+---
 
-## 写路径：提交只等 WAL
+## 创新 1：极简写路径——事务提交只等日志 Paxos 共识
 
-传统直觉是数据库提交时要把脏页安全写进磁盘。Neon 把“事务能不能提交”和“数据页什么时候物化完成”拆成了两件事。
+在传统数据库中，一次 `COMMIT` 往往受困于多重锁、同步刷盘、甚至是双写缓冲（Doublewrite Buffer）。
+而在 Neon 中，写路径被精炼到了极致：**页面落盘完全被移出了事务的关键路径（Critical Path）**。
 
 <figure class="diagram">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 725" role="img" aria-label="Neon 写路径：WAL 先持久化，页面物化在事务之后" style="width:100%;height:auto;display:block">
@@ -90,15 +122,22 @@ Pageserver 负责把 WAL 重新变成数据页。查询最终读的是 PostgreSQ
   </style>
 </defs>
 <rect width="1200" height="725" fill="#fff"/>
-<rect x="60" y="35" width="110" height="80" rx="12" class="n3-soft"/><text x="115" y="83.16" text-anchor="middle" class="n3-t" font-size="24" font-weight="700"><tspan x="115" dy="0">1</tspan></text><rect x="205" y="35" width="360" height="80" rx="12" class="n3-box"/><text x="385" y="81.8" text-anchor="middle" class="n3-t" font-size="20" font-weight="500"><tspan x="385" dy="0">Postgres 执行事务</tspan></text><rect x="600" y="35" width="530" height="80" rx="12" class="n3-box"/><text x="865" y="81.12" text-anchor="middle" class="n3-t" font-size="18" font-weight="500"><tspan x="865" dy="0">更新内存页并生成 WAL</tspan></text><path d="M115 115 L115 145" class="n3-line" marker-end="url(#n3-arrow)"/><rect x="60" y="155" width="110" height="80" rx="12" class="n3-soft"/><text x="115" y="203.16" text-anchor="middle" class="n3-t" font-size="24" font-weight="700"><tspan x="115" dy="0">2</tspan></text><rect x="205" y="155" width="360" height="80" rx="12" class="n3-box"/><text x="385" y="201.8" text-anchor="middle" class="n3-t" font-size="20" font-weight="500"><tspan x="385" dy="0">WAL 发往 Safekeepers</tspan></text><rect x="600" y="155" width="530" height="80" rx="12" class="n3-box"/><text x="865" y="201.12" text-anchor="middle" class="n3-t" font-size="18" font-weight="500"><tspan x="865" dy="0">不依赖本机磁盘持久化</tspan></text><path d="M115 235 L115 265" class="n3-line" marker-end="url(#n3-arrow)"/><rect x="60" y="275" width="110" height="80" rx="12" class="n3-ok"/><text x="115" y="323.16" text-anchor="middle" class="n3-t" font-size="24" font-weight="700"><tspan x="115" dy="0">3</tspan></text><rect x="205" y="275" width="360" height="80" rx="12" class="n3-box"/><text x="385" y="321.8" text-anchor="middle" class="n3-t" font-size="20" font-weight="500"><tspan x="385" dy="0">多数 Safekeeper 确认</tspan></text><rect x="600" y="275" width="530" height="80" rx="12" class="n3-box"/><text x="865" y="321.12" text-anchor="middle" class="n3-t" font-size="18" font-weight="500"><tspan x="865" dy="0">事务可以向客户端返回成功</tspan></text><path d="M115 355 L115 385" class="n3-line" marker-end="url(#n3-arrow)"/><rect x="60" y="395" width="110" height="80" rx="12" class="n3-soft"/><text x="115" y="443.16" text-anchor="middle" class="n3-t" font-size="24" font-weight="700"><tspan x="115" dy="0">4</tspan></text><rect x="205" y="395" width="360" height="80" rx="12" class="n3-box"/><text x="385" y="441.8" text-anchor="middle" class="n3-t" font-size="20" font-weight="500"><tspan x="385" dy="0">Pageserver 异步消费 WAL</tspan></text><rect x="600" y="395" width="530" height="80" rx="12" class="n3-box"/><text x="865" y="441.12" text-anchor="middle" class="n3-t" font-size="18" font-weight="500"><tspan x="865" dy="0">生成 / 压缩页面版本</tspan></text><path d="M115 475 L115 505" class="n3-line" marker-end="url(#n3-arrow)"/><rect x="60" y="515" width="110" height="80" rx="12" class="n3-soft"/><text x="115" y="563.16" text-anchor="middle" class="n3-t" font-size="24" font-weight="700"><tspan x="115" dy="0">5</tspan></text><rect x="205" y="515" width="360" height="80" rx="12" class="n3-box"/><text x="385" y="561.8" text-anchor="middle" class="n3-t" font-size="20" font-weight="500"><tspan x="385" dy="0">历史层写入对象存储</tspan></text><rect x="600" y="515" width="530" height="80" rx="12" class="n3-box"/><text x="865" y="561.12" text-anchor="middle" class="n3-t" font-size="18" font-weight="500"><tspan x="865" dy="0">脱离事务关键路径</tspan></text><text x="600" y="665" text-anchor="middle" class="n3-t" font-size="22" font-weight="650"><tspan x="600" dy="0">Commit 等的是 WAL 达到持久化共识，不需要等待整个数据页上传到对象存储。</tspan></text>
+<rect x="60" y="35" width="110" height="80" rx="12" class="n3-soft"/><text x="115" y="83.16" text-anchor="middle" class="n3-t" font-size="24" font-weight="700"><tspan x="115" dy="0">1</tspan></text><rect x="205" y="35" width="360" height="80" rx="12" class="n3-box"/><text x="385" y="81.8" text-anchor="middle" class="n3-t" font-size="20" font-weight="500"><tspan x="385" dy="0">Postgres 执行写事务</tspan></text><rect x="600" y="35" width="530" height="80" rx="12" class="n3-box"/><text x="865" y="81.12" text-anchor="middle" class="n3-t" font-size="18" font-weight="500"><tspan x="865" dy="0">修改内存缓冲页，生成有序 WAL 日志记录</tspan></text><path d="M115 115 L115 145" class="n3-line" marker-end="url(#n3-arrow)"/><rect x="60" y="155" width="110" height="80" rx="12" class="n3-soft"/><text x="115" y="203.16" text-anchor="middle" class="n3-t" font-size="24" font-weight="700"><tspan x="115" dy="0">2</tspan></text><rect x="205" y="155" width="360" height="80" rx="12" class="n3-box"/><text x="385" y="201.8" text-anchor="middle" class="n3-t" font-size="20" font-weight="500"><tspan x="385" dy="0">日志流式推送给 Safekeepers</tspan></text><rect x="600" y="155" width="530" height="80" rx="12" class="n3-box"/><text x="865" y="201.12" text-anchor="middle" class="n3-t" font-size="18" font-weight="500"><tspan x="865" dy="0">Compute 本机不执行磁盘 fsync，无写放大</tspan></text><path d="M115 235 L115 265" class="n3-line" marker-end="url(#n3-arrow)"/><rect x="60" y="275" width="110" height="80" rx="12" class="n3-ok"/><text x="115" y="323.16" text-anchor="middle" class="n3-t" font-size="24" font-weight="700"><tspan x="115" dy="0">3</tspan></text><rect x="205" y="275" width="360" height="80" rx="12" class="n3-box"/><text x="385" y="321.8" text-anchor="middle" class="n3-t" font-size="20" font-weight="500"><tspan x="385" dy="0">多数派 Safekeeper 确认收到</tspan></text><rect x="600" y="275" width="530" height="80" rx="12" class="n3-box"/><text x="865" y="321.12" text-anchor="middle" class="n3-t" font-size="18" font-weight="500"><tspan x="865" dy="0">【关键分水岭】事务直接返回 COMMIT 成功</tspan></text><path d="M115 355 L115 385" class="n3-line" marker-end="url(#n3-arrow)"/><rect x="60" y="395" width="110" height="80" rx="12" class="n3-soft"/><text x="115" y="443.16" text-anchor="middle" class="n3-t" font-size="24" font-weight="700"><tspan x="115" dy="0">4</tspan></text><rect x="205" y="395" width="360" height="80" rx="12" class="n3-box"/><text x="385" y="441.8" text-anchor="middle" class="n3-t" font-size="20" font-weight="500"><tspan x="385" dy="0">Pageserver 异步消费日志</tspan></text><rect x="600" y="395" width="530" height="80" rx="12" class="n3-box"/><text x="865" y="441.12" text-anchor="middle" class="n3-t" font-size="18" font-weight="500"><tspan x="865" dy="0">在后台将日志转化为分层增量 Delta</tspan></text><path d="M115 475 L115 505" class="n3-line" marker-end="url(#n3-arrow)"/><rect x="60" y="515" width="110" height="80" rx="12" class="n3-soft"/><text x="115" y="563.16" text-anchor="middle" class="n3-t" font-size="24" font-weight="700"><tspan x="115" dy="0">5</tspan></text><rect x="205" y="515" width="360" height="80" rx="12" class="n3-box"/><text x="385" y="561.8" text-anchor="middle" class="n3-t" font-size="20" font-weight="500"><tspan x="385" dy="0">不可变文件刷入对象存储</tspan></text><rect x="600" y="515" width="530" height="80" rx="12" class="n3-box"/><text x="865" y="561.12" text-anchor="middle" class="n3-t" font-size="18" font-weight="500"><tspan x="865" dy="0">冷层数据脱离事务路径，无锁归档</tspan></text><text x="600" y="665" text-anchor="middle" class="n3-t" font-size="22" font-weight="650"><tspan x="600" dy="0">创新的核心：客户端等的是“纯净日志达成共识”，完全不用等页面物化落地。</tspan></text>
 </svg>
 </figure>
 
-Postgres 照常执行更新，修改内存页并生成 WAL。WAL 不以 Compute 本机磁盘为最终持久化目标，而是流向多个 Safekeeper；足够多的 Safekeeper 确认之后，事务就可以向客户端返回成功。Pageserver 随后消费这些 WAL，生成和整理页面版本，再把长期层异步写到对象存储。WAL 记录的是发生了什么变化，Pageserver 负责把这些变化还原成某个 LSN 时刻的数据页，这一步不在事务的关键路径上。
+写流程的精妙之处在于：
+1. **零脏页刷盘开销**：传统数据库中最耗时的部分是 Buffer Pool 中脏页写入磁盘时的等待。在 Neon 中，Compute 的脏页只存在于内存以服务近期的重复读取；**脏页哪怕直接在内存中丢弃，系统也不会丢失任何数据**。
+2. **纯粹的顺序网络 IO**：Compute 唯一的对外 IO 就是向 Safekeeper 发送有序连续的日志字节流。现代网络和 SSD 处理顺序追加写极其强悍，因此事务写延迟仅取决于跨机器网络 RTT 和 Safekeeper 的追加写速度。
+3. **彻底根除 Checkpoint 阻塞**：由于不依赖本地页面落盘，传统数据库中令人闻风丧胆的“Checkpointer 疯狂刷盘导致整个数据库卡顿数十秒”的现象在物理层面上被直接消除了。
 
-## 读路径：GetPage@LSN
+---
 
-LSN 是 PostgreSQL WAL 的 Log Sequence Number，可以看作 WAL 时间轴上的位置，也是 Neon 存储引擎里很核心的概念。Compute 读一个 Page 时，Pageserver 不只能回答“这个页现在是什么样”，还能回答“这个页在某个 LSN 时是什么样”。
+## 创新 2：重构读路径——按日志位置（LSN）动态还原数据页
+
+如果存储层只保存日志，查询时难道要每次从第一行日志重新回放到最后一行吗？那读性能岂不是灾难？
+
+这正是 Pageserver 的天才设计：它发明了 **`GetPage@LSN`** 协议，通过 **Image Layer（基准镜像）** 与 **Delta Layer（增量日志层）** 的分层设计，使日志变成了可常数级复杂度检索的物化数据。
 
 <figure class="diagram">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 610" role="img" aria-label="Pageserver 通过 Image Layer 和 Delta Layer 重建指定 LSN 的数据页" style="width:100%;height:auto;display:block">
@@ -116,17 +155,28 @@ LSN 是 PostgreSQL WAL 的 Log Sequence Number，可以看作 WAL 时间轴上�
   </style>
 </defs>
 <rect width="1240" height="610" fill="#fff"/>
-<rect x="70" y="95" width="240" height="90" rx="12" class="n4-ok"/><text x="190" y="133.3" text-anchor="middle" class="n4-t" font-size="20" font-weight="500"><tspan x="190" dy="0">Compute</tspan><tspan x="190" dy="27">需要 Page P</tspan></text><path d="M310 140 L430 140" class="n4-line" marker-end="url(#n4-arrow)"/><rect x="445" y="80" width="310" height="120" rx="12" class="n4-soft"/><text x="600" y="132.965" text-anchor="middle" class="n4-t" font-size="21" font-weight="500"><tspan x="600" dy="0">Pageserver</tspan><tspan x="600" dy="28.35">GetPage(P, LSN)</tspan></text><path d="M755 115 L870 65" class="n4-line" marker-end="url(#n4-arrow)"/><rect x="885" y="35" width="250" height="90" rx="12" class="n4-box"/><text x="1010" y="73.63499999999999" text-anchor="middle" class="n4-t" font-size="19" font-weight="500"><tspan x="1010" dy="0">Image Layer</tspan><tspan x="1010" dy="25.650000000000002">某个历史完整页</tspan></text><path d="M755 165 L870 235" class="n4-line" marker-end="url(#n4-arrow)"/><rect x="885" y="205" width="250" height="90" rx="12" class="n4-box"/><text x="1010" y="243.63500000000002" text-anchor="middle" class="n4-t" font-size="19" font-weight="500"><tspan x="1010" dy="0">Delta Layer</tspan><tspan x="1010" dy="25.650000000000002">之后的 WAL 变化</tspan></text><path d="M1010 125 L1010 185" class="n4-line"/><path d="M1010 295 L1010 350" class="n4-line" marker-end="url(#n4-arrow)"/><rect x="825" y="365" width="370" height="95" rx="12" class="n4-ok"/><text x="1010" y="405.8" text-anchor="middle" class="n4-t" font-size="20" font-weight="500"><tspan x="1010" dy="0">重放到目标 LSN</tspan><tspan x="1010" dy="27">得到该时刻的数据页</tspan></text><path d="M825 412 L600 412" class="n4-line" marker-end="url(#n4-arrow)"/><rect x="335" y="365" width="250" height="95" rx="12" class="n4-box"/><text x="460" y="406.135" text-anchor="middle" class="n4-t" font-size="19" font-weight="500"><tspan x="460" dy="0">返回给 Compute</tspan><tspan x="460" dy="25.650000000000002">并进入缓存</tspan></text><text x="600" y="545" text-anchor="middle" class="n4-t" font-size="22" font-weight="650"><tspan x="600" dy="0">同一页可以被重建成不同历史版本，这正是 PITR 和 Branching 的底层基础。</tspan></text>
+<rect x="70" y="95" width="240" height="90" rx="12" class="n4-ok"/><text x="190" y="133.3" text-anchor="middle" class="n4-t" font-size="20" font-weight="500"><tspan x="190" dy="0">Compute</tspan><tspan x="190" dy="27">查询命中缺失，需要 Page P</tspan></text><path d="M310 140 L430 140" class="n4-line" marker-end="url(#n4-arrow)"/><rect x="445" y="80" width="310" height="120" rx="12" class="n4-soft"/><text x="600" y="132.96" text-anchor="middle" class="n4-t" font-size="21" font-weight="500"><tspan x="600" dy="0">Pageserver</tspan><tspan x="600" dy="28.35">GetPage(Page P, LSN X)</tspan></text><path d="M755 115 L870 65" class="n4-line" marker-end="url(#n4-arrow)"/><rect x="885" y="35" width="250" height="90" rx="12" class="n4-box"/><text x="1010" y="73.63" text-anchor="middle" class="n4-t" font-size="19" font-weight="500"><tspan x="1010" dy="0">Image Layer</tspan><tspan x="1010" dy="25.65">历史全量快照 (LSN &lt;= X)</tspan></text><path d="M755 165 L870 235" class="n4-line" marker-end="url(#n4-arrow)"/><rect x="885" y="205" width="250" height="90" rx="12" class="n4-box"/><text x="1010" y="243.63" text-anchor="middle" class="n4-t" font-size="19" font-weight="500"><tspan x="1010" dy="0">Delta Layer</tspan><tspan x="1010" dy="25.65">目标范围内的增量日志记录</tspan></text><path d="M1010 125 L1010 185" class="n4-line"/><path d="M1010 295 L1010 350" class="n4-line" marker-end="url(#n4-arrow)"/><rect x="825" y="365" width="370" height="95" rx="12" class="n4-ok"/><text x="1010" y="405.8" text-anchor="middle" class="n4-t" font-size="20" font-weight="500"><tspan x="1010" dy="0">在内存中即时回放增量日志</tspan><tspan x="1010" dy="27">重组出指定 LSN X 时的准确数据页</tspan></text><path d="M825 412 L600 412" class="n4-line" marker-end="url(#n4-arrow)"/><rect x="335" y="365" width="250" height="95" rx="12" class="n4-box"/><text x="460" y="406.13" text-anchor="middle" class="n4-t" font-size="19" font-weight="500"><tspan x="460" dy="0">返回给 Compute</tspan><tspan x="460" dy="25.65">进入本地 Buffer 缓存</tspan></text><text x="600" y="545" text-anchor="middle" class="n4-t" font-size="22" font-weight="650"><tspan x="600" dy="0">数据页不再是一个死板的磁盘文件，而是由“日志时间轴”实时投射出的视图。</tspan></text>
 </svg>
 </figure>
 
-具体做法是先找到目标 LSN 之前合适的 Image Layer，也就是某个完整页面版本，再把之后的 Delta Layer 逐步应用到目标位置，得到该页在指定 LSN 的状态。
+在传统 MySQL 中，如果你想看某行数据在半小时前的状态，除非应用层记录了审计表，否则数据库底层早就把旧页覆盖得一干二净。
+而在 Neon 的 Pageserver 中：
+- **Delta Layer** 保存了一系列按 LSN 范围排序的原始 WAL 修改操作；
+- 当累积的 Delta 记录过多时，后台 Compaction 会自动将其物化为一个新的 **Image Layer**（相当于基准快照）；
+- 当读取请求到来时，Pageserver 通过二分查找命中最近的 Image Layer，然后仅需将之后的少数几条 Delta 日志在内存中做局部重放，就能在微秒级还原出该数据页。
 
-这和原地覆盖旧页的传统模型很不一样。Neon 的存储天然保留了版本历史，过去的数据库状态成了存储系统可以直接寻址的一部分，不用再去翻离线备份。后面的 Branching 和 PITR 之所以轻量，都建立在这一点上。
+这带来了一个革命性的副产品：**过去的任何一个历史版本与当前最新版本在架构上拥有同等的地位**。只要指定不同的 LSN（日志序号），Pageserver 就能返回任何历史时间点的数据页！
 
-## Branching 为什么不用复制整库
+---
 
-数据库分支是 Neon 最像 Git 的能力，关键在于创建分支时底层不需要复制整份数据库。
+## 创新 3：数据库的 Git 时代——基于日志分叉的秒级分支（Branching）
+
+在传统 MySQL 或 PostgreSQL 生态中，为开发或测试准备一个真实数据的独立环境极其痛苦：
+- 500GB 的数据库，要做物理备份复制；
+- 哪怕使用快照技术（如 LVM / ZFS 快照），也需要在宿主机层面操作存储卷；
+- 研发提交一个 PR 想要一个专属测试库？成本和耗时根本无法承受。
+
+而在 Neon 看来，既然“数据是由日志构成的”，那么**创建一个新分支，本质上就是在日志时间线上记录一个分叉点（Branch Point LSN）**。
 
 <figure class="diagram">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 690" role="img" aria-label="Neon Branching 使用 copy-on-write，共享历史数据只保存差异" style="width:100%;height:auto;display:block">
@@ -144,45 +194,26 @@ LSN 是 PostgreSQL WAL 的 Log Sequence Number，可以看作 WAL 时间轴上�
   </style>
 </defs>
 <rect width="1200" height="690" fill="#fff"/>
-<rect x="430" y="35" width="340" height="85" rx="12" class="n5-ok"/><text x="600" y="70.8" text-anchor="middle" class="n5-t" font-size="20" font-weight="500"><tspan x="600" dy="0">main</tspan><tspan x="600" dy="27">共享历史页 A / B / C</tspan></text><path d="M600 120 L600 180" class="n5-line"/><path d="M270 180 L930 180" class="n5-line"/><path d="M270 180 L270 240" class="n5-line" marker-end="url(#n5-arrow)"/><path d="M930 180 L930 240" class="n5-line" marker-end="url(#n5-arrow)"/><rect x="90" y="255" width="360" height="100" rx="12" class="n5-soft"/><text x="270" y="298.635" text-anchor="middle" class="n5-t" font-size="19" font-weight="500"><tspan x="270" dy="0">branch/pr-123</tspan><tspan x="270" dy="25.650000000000002">起点仍引用 A / B / C</tspan></text><rect x="750" y="255" width="360" height="100" rx="12" class="n5-box"/><text x="930" y="298.635" text-anchor="middle" class="n5-t" font-size="19" font-weight="500"><tspan x="930" dy="0">main</tspan><tspan x="930" dy="25.650000000000002">继续引用 A / B / C</tspan></text><path d="M270 355 L270 420" class="n5-line" marker-end="url(#n5-arrow)"/><rect x="90" y="435" width="360" height="110" rx="12" class="n5-warn"/><text x="270" y="483.3" text-anchor="middle" class="n5-t" font-size="20" font-weight="500"><tspan x="270" dy="0">branch 写入</tspan><tspan x="270" dy="27">只新增 B' / D</tspan></text><text x="600" y="615" text-anchor="middle" class="n5-t" font-size="22" font-weight="650"><tspan x="600" dy="0">创建分支时不复制整库</tspan><tspan x="600" dy="32">父子分支共享旧页面，发生写入后才各自保存差异</tspan></text>
+<rect x="430" y="35" width="340" height="85" rx="12" class="n5-ok"/><text x="600" y="70.8" text-anchor="middle" class="n5-t" font-size="20" font-weight="500"><tspan x="600" dy="0">main 主分支</tspan><tspan x="600" dy="27">公共历史日志流 [0 ... LSN_fork]</tspan></text><path d="M600 120 L600 180" class="n5-line"/><path d="M270 180 L930 180" class="n5-line"/><path d="M270 180 L270 240" class="n5-line" marker-end="url(#n5-arrow)"/><path d="M930 180 L930 240" class="n5-line" marker-end="url(#n5-arrow)"/><rect x="90" y="255" width="360" height="100" rx="12" class="n5-soft"/><text x="270" y="298.63" text-anchor="middle" class="n5-t" font-size="19" font-weight="500"><tspan x="270" dy="0">feat/pr-123 新分支</tspan><tspan x="270" dy="25.65">共享父分支所有历史日志</tspan></text><rect x="750" y="255" width="360" height="100" rx="12" class="n5-box"/><text x="930" y="298.63" text-anchor="middle" class="n5-t" font-size="19" font-weight="500"><tspan x="930" dy="0">main 主分支</tspan><tspan x="930" dy="25.65">继续往前写入新日志</tspan></text><path d="M270 355 L270 420" class="n5-line" marker-end="url(#n5-arrow)"/><rect x="90" y="435" width="360" height="110" rx="12" class="n5-warn"/><text x="270" y="483.3" text-anchor="middle" class="n5-t" font-size="20" font-weight="500"><tspan x="270" dy="0">分支独立写入</tspan><tspan x="270" dy="27">仅记录差异 Delta 日志</tspan></text><text x="600" y="615" text-anchor="middle" class="n5-t" font-size="22" font-weight="650"><tspan x="600" dy="0">创建分支不复制任何物理数据页！</tspan><tspan x="600" dy="32">新分支与主分支完全共享基础日志，只有产生新写入时才保存差异日志（CoW）。</tspan></text>
 </svg>
 </figure>
 
-假设生产分支已经有 500 GB 数据。传统做法给一个 PR 准备完整测试库，要做快照、恢复或复制，库越大越重。Neon 的分支接近 copy-on-write：新分支先共享父分支已有的历史页面，只有发生新的写入时才保存自己的差异，所以创建一个 branch 的初始成本和整库大小不是线性关系。
+1. **秒级创建，零初始存储**：创建一个拥有 1TB 生产数据的分支，仅仅是在元数据中记录一条指向 `main` 分支当前最新 LSN 的指针，耗时不到 1 秒，新增存储为 0；
+2. **写时复制（Copy-on-Write）差异隔离**：在新分支上执行的任何破坏性操作（例如 `DROP TABLE`、大范围压测写入），产生的日志全部打上该分支独有的 Timeline ID，完全不影响主分支；
+3. **真实生产数据的研发闭环**：每一个 Pull Request 都可以自动拉起一个完整的数据库分支，跑完自动化测试和预览后直接销毁，彻底颠覆了“大家共用一个脏乱差的测试库”的历史窘境。
 
-这样一来，数据库就不必只分成 production、staging、dev 三套长期环境，而可以当作短生命周期资源来用。一个 PR 一个 branch、一个测试任务一个 branch，甚至 Agent 每次执行一个 branch，都变得合理。
+---
 
-## Scale to Zero 是存算分离的直接结果
+## 创新 4：时间旅行与无损 PITR——日志时间轴上的任意锚定
 
-如果数据属于 Compute 本机，把 Compute 缩到 0 就意味着数据库跟着机器一起消失。Neon 能 scale-to-zero，是因为持久化状态一直在独立的存储层里。
+很多 DBA 在面对“线上误执行了没有加 WHERE 条件的 UPDATE/DELETE”时，都会直冒冷汗。传统的 Point-in-Time Recovery（PITR）流程极为反人类：
+1. 翻出昨天的全量物理冷备；
+2. 找一台闲置的大机器恢复全备；
+3. 导出当天的所有 binlog 文件，通过工具定位到误操作之前的那个事务 Position；
+4. 漫长地逐行重放 binlog 直到该位置；
+5. 把数据比对补回生产库。整个过程往往耗时数小时甚至半天。
 
-<figure class="diagram">
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500" role="img" aria-label="Neon Scale to Zero：暂停的是计算，不是数据库历史" style="width:100%;height:auto;display:block">
-<defs>
-  <marker id="n6-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L10,5 L0,10 z" fill="#374151"/></marker>
-  <style>
-    .n6-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif;fill:#1f2937}
-    .n6-m{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;fill:#1f2937}
-    .n6-box{fill:#fff;stroke:#374151;stroke-width:2}
-    .n6-soft{fill:#f8fafc;stroke:#64748b;stroke-width:1.6}
-    .n6-ok{fill:#f0fdf4;stroke:#15803d;stroke-width:1.8}
-    .n6-warn{fill:#fff7ed;stroke:#c2410c;stroke-width:1.8}
-    .n6-line{stroke:#475569;stroke-width:2;fill:none}
-    .n6-dash{stroke:#94a3b8;stroke-width:1.6;fill:none;stroke-dasharray:7 7}
-  </style>
-</defs>
-<rect width="1200" height="500" fill="#fff"/>
-<rect x="65" y="90" width="250" height="90" rx="12" class="n6-ok"/><text x="190" y="128.3" text-anchor="middle" class="n6-t" font-size="20" font-weight="500"><tspan x="190" dy="0">有请求</tspan><tspan x="190" dy="27">Compute 运行</tspan></text><path d="M315 135 L450 135" class="n6-line" marker-end="url(#n6-arrow)"/><rect x="465" y="90" width="270" height="90" rx="12" class="n6-soft"/><text x="600" y="128.635" text-anchor="middle" class="n6-t" font-size="19" font-weight="500"><tspan x="600" dy="0">空闲一段时间</tspan><tspan x="600" dy="25.650000000000002">Activity Monitor</tspan></text><path d="M735 135 L870 135" class="n6-line" marker-end="url(#n6-arrow)"/><rect x="885" y="90" width="250" height="90" rx="12" class="n6-warn"/><text x="1010" y="128.3" text-anchor="middle" class="n6-t" font-size="20" font-weight="500"><tspan x="1010" dy="0">Suspend</tspan><tspan x="1010" dy="27">Compute → 0</tspan></text><path d="M1010 180 L1010 290" class="n6-line"/><path d="M1010 290 L765 290" class="n6-line" marker-end="url(#n6-arrow)"/><rect x="485" y="245" width="265" height="90" rx="12" class="n6-soft"/><text x="617.5" y="283.635" text-anchor="middle" class="n6-t" font-size="19" font-weight="500"><tspan x="617.5" dy="0">新连接到来</tspan><tspan x="617.5" dy="25.650000000000002">重新启动 Compute</tspan></text><path d="M485 290 L350 290" class="n6-line" marker-end="url(#n6-arrow)"/><rect x="70" y="245" width="265" height="90" rx="12" class="n6-box"/><text x="202.5" y="283.635" text-anchor="middle" class="n6-t" font-size="19" font-weight="500"><tspan x="202.5" dy="0">重新连接存储</tspan><tspan x="202.5" dy="25.650000000000002">数据无需恢复搬迁</tspan></text><text x="600" y="430" text-anchor="middle" class="n6-t" font-size="22" font-weight="650"><tspan x="600" dy="0">能 scale-to-zero 的前提不是“数据库没了”</tspan><tspan x="600" dy="32">而是 Compute 可以消失，持久化状态仍然留在独立存储层</tspan></text>
-</svg>
-</figure>
-
-Compute 长时间没有活动时，控制面会把它挂起，释放的是 CPU 和内存，数据库历史还在。下一个连接到来时，再启动新的 Compute，接回原来的存储状态。准确地说，Neon 暂停的是执行查询的 Compute，而不是数据库本身。
-
-开发、测试、预览环境最受益，这些库真正执行 SQL 的时间很短，大部分时候只是存在、没人访问。持续有流量的生产系统则不同，官方当前也更建议让生产 Compute 保持在线，通过 autoscaling 在一个最小值和最大值之间动态调整，而不是频繁 scale-to-zero。
-
-## PITR 和历史分支
-
-传统数据库做 Point-in-Time Recovery，一般是找到基础备份，再重放后续 WAL 到目标时间点，相当于先恢复出一份数据库。Neon 的 Pageserver 本来就保存着可以按 LSN 重建的页面历史，恢复更像是在时间轴上选另一个位置。
+而基于不可变日志流设计的 Neon，让时间恢复变成了**“在时间轴上选一个坐标”**一样自然：
 
 <figure class="diagram">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 590" role="img" aria-label="Neon 通过 WAL 历史和 LSN 支持时间旅行与 PITR" style="width:100%;height:auto;display:block">
@@ -200,17 +231,64 @@ Compute 长时间没有活动时，控制面会把它挂起，释放的是 CPU �
   </style>
 </defs>
 <rect width="1200" height="590" fill="#fff"/>
-<path d="M100 210 L1110 210" class="n7-line"/><circle cx="170" cy="210" r="9" fill="#374151"/><text x="170" y="255" text-anchor="middle" class="n7-m" font-size="17" font-weight="500"><tspan x="170" dy="0">LSN 100</tspan></text><circle cx="390" cy="210" r="9" fill="#374151"/><text x="390" y="255" text-anchor="middle" class="n7-m" font-size="17" font-weight="500"><tspan x="390" dy="0">LSN 120</tspan></text><circle cx="610" cy="210" r="9" fill="#374151"/><text x="610" y="255" text-anchor="middle" class="n7-m" font-size="17" font-weight="500"><tspan x="610" dy="0">LSN 140</tspan></text><circle cx="830" cy="210" r="9" fill="#374151"/><text x="830" y="255" text-anchor="middle" class="n7-m" font-size="17" font-weight="500"><tspan x="830" dy="0">LSN 160</tspan></text><circle cx="1050" cy="210" r="9" fill="#374151"/><text x="1050" y="255" text-anchor="middle" class="n7-m" font-size="17" font-weight="500"><tspan x="1050" dy="0">LSN 180</tspan></text><text x="600" y="65" text-anchor="middle" class="n7-t" font-size="23" font-weight="650"><tspan x="600" dy="0">不可覆盖的历史 + WAL 位置，让数据库状态成为一条可寻址的时间轴。</tspan></text><path d="M610 200 L610 115" class="n7-line" marker-end="url(#n7-arrow)"/><rect x="455" y="75" width="310" height="90" rx="12" class="n7-soft"/><text x="610" y="113.63499999999999" text-anchor="middle" class="n7-t" font-size="19" font-weight="500"><tspan x="610" dy="0">选择某个时间点</tspan><tspan x="610" dy="25.650000000000002">timestamp / LSN</tspan></text><path d="M610 265 L610 335" class="n7-line" marker-end="url(#n7-arrow)"/><rect x="390" y="350" width="440" height="100" rx="12" class="n7-ok"/><text x="610" y="393.3" text-anchor="middle" class="n7-t" font-size="20" font-weight="500"><tspan x="610" dy="0">创建历史分支 / Restore</tspan><tspan x="610" dy="27">从该点继续独立演化</tspan></text><text x="600" y="525" text-anchor="middle" class="n7-t" font-size="21" font-weight="650"><tspan x="600" dy="0">PITR 不必先把整份备份复制出来，而是重新指向已有历史并启动新的 Compute。</tspan></text>
+<path d="M100 210 L1110 210" class="n7-line"/><circle cx="170" cy="210" r="9" fill="#374151"/><text x="170" y="255" text-anchor="middle" class="n7-m" font-size="17" font-weight="500"><tspan x="170" dy="0">LSN 100</tspan></text><circle cx="390" cy="210" r="9" fill="#374151"/><text x="390" y="255" text-anchor="middle" class="n7-m" font-size="17" font-weight="500"><tspan x="390" dy="0">LSN 120</tspan></text><circle cx="610" cy="210" r="9" fill="#374151"/><text x="610" y="255" text-anchor="middle" class="n7-m" font-size="17" font-weight="500"><tspan x="610" dy="0">LSN 140 (误删前一秒)</tspan></text><circle cx="830" cy="210" r="9" fill="#374151"/><text x="830" y="255" text-anchor="middle" class="n7-m" font-size="17" font-weight="500"><tspan x="830" dy="0">LSN 160 (事故发生)</tspan></text><circle cx="1050" cy="210" r="9" fill="#374151"/><text x="1050" y="255" text-anchor="middle" class="n7-m" font-size="17" font-weight="500"><tspan x="1050" dy="0">LSN 180 (当前)</tspan></text><text x="600" y="65" text-anchor="middle" class="n7-t" font-size="23" font-weight="650"><tspan x="600" dy="0">不可变日志让过去的每一个瞬间都具备唯一的地址（LSN）</tspan></text><path d="M610 200 L610 115" class="n7-line" marker-end="url(#n7-arrow)"/><rect x="455" y="75" width="310" height="90" rx="12" class="n7-soft"/><text x="610" y="113.63" text-anchor="middle" class="n7-t" font-size="19" font-weight="500"><tspan x="610" dy="0">指定目标恢复时间点</tspan><tspan x="610" dy="25.65">精确对应到特定 LSN</tspan></text><path d="M610 265 L610 335" class="n7-line" marker-end="url(#n7-arrow)"/><rect x="390" y="350" width="440" height="100" rx="12" class="n7-ok"/><text x="610" y="393.3" text-anchor="middle" class="n7-t" font-size="20" font-weight="500"><tspan x="610" dy="0">瞬间拉起历史只读/读写分支</tspan><tspan x="610" dy="27">就地查询与提取误损数据</tspan></text><text x="600" y="525" text-anchor="middle" class="n7-t" font-size="21" font-weight="650"><tspan x="600" dy="0">PITR 不再是“痛苦的离线重放”，而是“在已有日志流上换个锚点拉起新计算”。</tspan></text>
 </svg>
 </figure>
 
-比如误删了一张表，不一定要马上把整个生产库原地回滚，可以先从删除前的时间点创建一个 branch，查询旧状态、核对数据，再把需要的部分抽出来。生产数据的历史版本因此不只是出事后才动用的冷备份，日常排障和验证也能用上。
+因为日志在归档到对象存储时是不可变的，任何历史时间戳都能精准换算为一个具体的 LSN。
+当你发现线上数据被误删，你根本不需要停止生产库，也不需要搬迁整库：
+直接以事故发生前 1 秒的 LSN 为基准拉起一条新的分支，立刻启动一个只读 Compute。此时你可以像查询活着的生产库一样，用标准 SQL 把被误删的数据查出来、对比确认，再安全导回主库。
 
-## Read Replica
+---
 
-传统 PostgreSQL 的 read replica 通常需要另一份完整的数据副本，并持续接收 WAL。在 Neon 里，多个 Compute 可以面向同一份底层存储工作，每增加一个读节点不必先完整复制一份数据，计算扩展和数据复制就此解耦。当然，读副本仍然需要自己的 CPU、内存和缓存，WAL 应用和可见性延迟也依然存在。
+## 创新 5：计算层彻底无状态——Scale to Zero 的底层密码
 
-## 适合哪些场景
+为什么传统的 MySQL / PostgreSQL 无法做到 Serverless？
+因为单机数据库的内存 Buffer Pool 和本地磁盘是一个**有状态（Stateful）的整体**。一旦停掉机器，不仅缓存全丢，未刷盘的脏页还需要重启时执行昂贵的 Crash Recovery 重放；换机器更意味着漫长的数据迁移。
+
+Neon 之所以能做到**毫秒级冷启动与缩容到零（Scale-to-Zero）**，最根本的原因在于：**计算节点被彻底“去状态化”了**。
+
+<figure class="diagram">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500" role="img" aria-label="Neon Scale to Zero：暂停的是计算，不是数据库历史" style="width:100%;height:auto;display:block">
+<defs>
+  <marker id="n6-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L10,5 L0,10 z" fill="#374151"/></marker>
+  <style>
+    .n6-t{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif;fill:#1f2937}
+    .n6-m{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;fill:#1f2937}
+    .n6-box{fill:#fff;stroke:#374151;stroke-width:2}
+    .n6-soft{fill:#f8fafc;stroke:#64748b;stroke-width:1.6}
+    .n6-ok{fill:#f0fdf4;stroke:#15803d;stroke-width:1.8}
+    .n6-warn{fill:#fff7ed;stroke:#c2410c;stroke-width:1.8}
+    .n6-line{stroke:#475569;stroke-width:2;fill:none}
+    .n6-dash{stroke:#94a3b8;stroke-width:1.6;fill:none;stroke-dasharray:7 7}
+  </style>
+</defs>
+<rect width="1200" height="500" fill="#fff"/>
+<rect x="65" y="90" width="250" height="90" rx="12" class="n6-ok"/><text x="190" y="128.3" text-anchor="middle" class="n6-t" font-size="20" font-weight="500"><tspan x="190" dy="0">业务有请求</tspan><tspan x="190" dy="27">Compute 运行服务</tspan></text><path d="M315 135 L450 135" class="n6-line" marker-end="url(#n6-arrow)"/><rect x="465" y="90" width="270" height="90" rx="12" class="n6-soft"/><text x="600" y="128.63" text-anchor="middle" class="n6-t" font-size="19" font-weight="500"><tspan x="600" dy="0">空闲一段时间无流量</tspan><tspan x="600" dy="25.65">连接代理识别闲置</tspan></text><path d="M735 135 L870 135" class="n6-line" marker-end="url(#n6-arrow)"/><rect x="885" y="90" width="250" height="90" rx="12" class="n6-warn"/><text x="1010" y="128.3" text-anchor="middle" class="n6-t" font-size="20" font-weight="500"><tspan x="1010" dy="0">Suspend 销毁容器</tspan><tspan x="1010" dy="27">CPU + 内存归零</tspan></text><path d="M1010 180 L1010 290" class="n6-line"/><path d="M1010 290 L765 290" class="n6-line" marker-end="url(#n6-arrow)"/><rect x="485" y="245" width="265" height="90" rx="12" class="n6-soft"/><text x="617.5" y="283.63" text-anchor="middle" class="n6-t" font-size="19" font-weight="500"><tspan x="617.5" dy="0">新连接到达代理层</tspan><tspan x="617.5" dy="25.65">毫秒级秒启无状态容器</tspan></text><path d="M485 290 L350 290" class="n6-line" marker-end="url(#n6-arrow)"/><rect x="70" y="245" width="265" height="90" rx="12" class="n6-box"/><text x="202.5" y="283.63" text-anchor="middle" class="n6-t" font-size="19" font-weight="500"><tspan x="202.5" dy="0">建立轻量网络连接</tspan><tspan x="202.5" dy="25.65">无需数据搬迁，即刻提供服务</tspan></text><text x="600" y="430" text-anchor="middle" class="n6-t" font-size="22" font-weight="650"><tspan x="600" dy="0">Scale-to-Zero 不是魔法，其本质是：状态全部沉淀在分布式日志层，</tspan><tspan x="600" dy="32">计算节点变成了一个可随时丢弃、秒级拉起的轻量级翻译器。</tspan></text>
+</svg>
+</figure>
+
+当一个开发环境或夜间业务闲置超过 5 分钟：
+1. 控制面将 Compute 容器直接 Kill 掉，释放所有的 CPU 和 RAM 资源，此时用户无需为计算付费；
+2. 数据状态安全沉淀在 Safekeeper 与底层对象存储中；
+3. 第二天早上用户发送第一条 SQL 查询，前端的 WebSocket / 连接代理层（Neon Proxy）捕获到连接请求，挂起请求几十毫秒，同时快速拉起一个空白的 Postgres 容器；
+4. 容器不需要挂载几十 GB 的 EBS 卷，直接通过网络与 Pageserver 握手，按需动态请求查询相关的 Page，无缝恢复响应。
+
+---
+
+## 读扩展（Read Replica）：同一个日志源上的无锁衍生
+
+在传统 MySQL 中，如果要配置只读从库，需要搭建完整的从库实例，主库将 Binlog 发送给从库的 I/O 线程写入 Relay Log，再由 SQL 线程单线程或多线程回放。
+从库必须维持一份一模一样的全量物理数据，且回放常常伴随令人头疼的主从延迟（Replication Lag）。
+
+在 Neon 中，**只读副本（Read Replica）不过是另一个指向相同存储层、并持续监听最新日志 LSN 的无状态 Compute 节点**：
+- 多个读副本共享底层完全相同的 Pageserver 与对象存储历史；
+- 增加一个读副本不需要预先复制几百 GB 的数据，也不需要分配巨额存储空间；
+- 读副本只需向 Safekeeper 订阅最新的 LSN 进度，以维护本地快照可见性。扩展读能力变得像扩展无状态 API 服务一样轻盈。
+
+---
+
+## 适合哪些场景：日志驱动架构的真正用武之地
 
 <figure class="diagram">
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" role="img" aria-label="Neon 的典型使用场景" style="width:100%;height:auto;display:block">
@@ -228,24 +306,39 @@ Compute 长时间没有活动时，控制面会把它挂起，释放的是 CPU �
   </style>
 </defs>
 <rect width="1200" height="620" fill="#fff"/>
-<rect x="55" y="45" width="520" height="120" rx="12" class="n8-box"/><text x="315" y="86.82000000000001" text-anchor="middle" class="n8-t" font-size="18" font-weight="500"><tspan x="315" dy="0">PR / Preview 环境</tspan><tspan x="315" dy="24.3">每个 PR 一条数据库分支</tspan><tspan x="315" dy="24.3">用完删除，Compute 可休眠</tspan></text><rect x="630" y="45" width="520" height="120" rx="12" class="n8-box"/><text x="890" y="86.82000000000001" text-anchor="middle" class="n8-t" font-size="18" font-weight="500"><tspan x="890" dy="0">开发 / 测试 / Staging</tspan><tspan x="890" dy="24.3">生产样本快速分支</tspan><tspan x="890" dy="24.3">隔离迁移和破坏性实验</tspan></text><rect x="55" y="200" width="520" height="120" rx="12" class="n8-box"/><text x="315" y="241.82" text-anchor="middle" class="n8-t" font-size="18" font-weight="500"><tspan x="315" dy="0">Agent / 平台型产品</tspan><tspan x="315" dy="24.3">批量创建短生命周期数据库</tspan><tspan x="315" dy="24.3">适合大量间歇性工作负载</tspan></text><rect x="630" y="200" width="520" height="120" rx="12" class="n8-box"/><text x="890" y="241.82" text-anchor="middle" class="n8-t" font-size="18" font-weight="500"><tspan x="890" dy="0">突发型业务</tspan><tspan x="890" dy="24.3">Compute 在区间内自动扩缩</tspan><tspan x="890" dy="24.3">避免长期按峰值配机器</tspan></text><rect x="55" y="355" width="520" height="120" rx="12" class="n8-soft"/><text x="315" y="396.82" text-anchor="middle" class="n8-t" font-size="18" font-weight="500"><tspan x="315" dy="0">恢复 / 排障</tspan><tspan x="315" dy="24.3">从过去时间点创建分支</tspan><tspan x="315" dy="24.3">不直接回滚生产再调查</tspan></text><rect x="630" y="355" width="520" height="120" rx="12" class="n8-soft"/><text x="890" y="396.82" text-anchor="middle" class="n8-t" font-size="18" font-weight="500"><tspan x="890" dy="0">读扩展</tspan><tspan x="890" dy="24.3">多个 Compute 共享存储</tspan><tspan x="890" dy="24.3">无需复制完整数据集</tspan></text><text x="600" y="555" text-anchor="middle" class="n8-t" font-size="22" font-weight="650"><tspan x="600" dy="0">真正适合 Neon 的工作负载，通常都有一个共同点：计算生命周期和数据生命周期并不相同。</tspan></text>
+<rect x="55" y="45" width="520" height="120" rx="12" class="n8-box"/><text x="315" y="86.82" text-anchor="middle" class="n8-t" font-size="18" font-weight="500"><tspan x="315" dy="0">CI/CD 与 PR 预览环境</tspan><tspan x="315" dy="24.3">每个 PR 毫秒级派生一个真实数据库分支</tspan><tspan x="315" dy="24.3">跑完测试立即销毁，极度适合现代 DevOps</tspan></text><rect x="630" y="45" width="520" height="120" rx="12" class="n8-box"/><text x="890" y="86.82" text-anchor="middle" class="n8-t" font-size="18" font-weight="500"><tspan x="890" dy="0">安全迁移与灾难验证</tspan><tspan x="890" dy="24.3">在生产真实镜像分支上测试 DDL 变更</tspan><tspan x="890" dy="24.3">验证完全无损后再应用至主干</tspan></text><rect x="55" y="200" width="520" height="120" rx="12" class="n8-box"/><text x="315" y="241.82" text-anchor="middle" class="n8-t" font-size="18" font-weight="500"><tspan x="315" dy="0">AI Agent 与批处理工作流</tspan><tspan x="315" dy="24.3">按需动态创建短生命周期环境</tspan><tspan x="315" dy="24.3">适合突发、间歇性、高并发的临时计算</tspan></text><rect x="630" y="200" width="520" height="120" rx="12" class="n8-box"/><text x="890" y="241.82" text-anchor="middle" class="n8-t" font-size="18" font-weight="500"><tspan x="890" dy="0">多租户平台与 SaaS 产品</tspan><tspan x="890" dy="24.3">每个租户分配独立数据库分支</tspan><tspan x="890" dy="24.3">冷租户自动休眠，资源利用率提升数倍</tspan></text><rect x="55" y="355" width="520" height="120" rx="12" class="n8-soft"/><text x="315" y="396.82" text-anchor="middle" class="n8-t" font-size="18" font-weight="500"><tspan x="315" dy="0">秒级无损排障与 PITR</tspan><tspan x="315" dy="24.3">按发生事故前的 LSN 瞬间开出时间旅行分支</tspan><tspan x="315" dy="24.3">无须漫长导出导入，即可精确提取现场</tspan></text><rect x="630" y="355" width="520" height="120" rx="12" class="n8-soft"/><text x="890" y="396.82" text-anchor="middle" class="n8-t" font-size="18" font-weight="500"><tspan x="890" dy="0">弹性突发读写业务</tspan><tspan x="890" dy="24.3">多读节点共享存储，按流量动态扩缩</tspan><tspan x="890" dy="24.3">避免为波峰长期闲置昂贵的大规格实例</tspan></text><text x="600" y="555" text-anchor="middle" class="n8-t" font-size="22" font-weight="650"><tspan x="600" dy="0">核心适用特征：业务的“计算生命周期”与“数据生命周期”并不一致。</tspan></text>
 </svg>
 </figure>
 
-最直观的是每个 PR 一个数据库：创建 PR 时自动建 branch，跑迁移、集成测试和 preview，合并后删掉分支。比起所有开发者共用一个 staging DB，隔离性好得多，也不容易出现“你的迁移把我的测试数据改坏了”。
+如果你所在的技术团队面临以下痛点，Neon 的这套日志架构能发挥出惊人的威力：
 
-开发、测试和 staging 环境最大的浪费通常是长期闲置的 Compute，正适合 autoscaling 和 scale-to-zero，需要时启动，不需要时把计算缩掉，数据状态照样保留。
+1. **研发测试环境治理**：告别所有人抢一个 Staging 库的日子。每个 Git PR 配套一个数据库分支，跑完自动化测试直接丢弃；
+2. **危险 DDL 变更演练**：对于千万级核心大表加索引或改字段，在生产库跑风险极高。现在你可以 1 秒钟拉一个完全一致的生产分支，跑一遍 DDL，观察执行计划与锁开销；
+3. **海量长尾 SaaS 租户**：如果你有成千上万个小企业客户，但 80% 的客户每天只在白天活跃半小时。传统架构下为每个租户配独立 RDS 成本上天；在 Neon 下，闲置租户全部自动休眠归零，大幅削减云上成本；
+4. **AI Agent / 沙箱应用**：AI Agent 自动生成并执行代码时，经常需要临时数据库环境。用完即毁的机制天然契合这种场景。
 
-AI Agent 和短生命周期任务也类似。Agent 为了完成一次代码修改，可能启动应用、数据库、测试数据和 preview，然后很快销毁，长期数据库实例很难匹配这种生命周期，branching 加 scale-to-zero 正好对应“环境很多，但绝大多数时间不活跃”。需要给大量客户动态创建 PostgreSQL 环境的 SaaS 和平台型产品同理：数据库通过 API 创建，Compute 按各租户的活动状态单独调整，不用提前为所有客户保留长期运行的实例。
+---
 
-流量波峰波谷明显、但全天都持续有请求的生产业务，可以保留最小 Compute，让 Neon 在设定的上下界之间 autoscale。省下的是长期按峰值配置 CPU 和内存的那部分成本。
+## 工程权衡：天下没有免费的午餐
 
-恢复、数据排障和迁移验证也是一类：调查某个历史状态时，从过去的时间点创建 branch；验证一次危险的 schema migration 时，先在生产数据的隔离分支上跑。这比直接操作生产库安全。
+虽然“以日志为核心”的设计极为优美，但在严肃的工程实践中，我们必须清醒地认识到其背后的物理权衡（Trade-offs）：
 
-## 不要因为 Serverless 就盲目套用
+1. **网络存储延迟 vs 本地 NVMe**：
+   单机数据库直接访问本地 PCI-e NVMe SSD 时，随机读延迟可以在数十微秒级别。而在存算分离架构中，未命中缓存的 `GetPage@LSN` 必须经过一次局域网 RPC。如果业务具有极其庞大、毫无局部性的随机读工作集（Working Set），且本地 Buffer Cache 无法容纳，其冷读延迟会显著高于本地盘。
+2. **冷启动尾延迟（Cold Start P99）**：
+   虽然 Neon 能做到数百毫秒内拉起 Compute，但对于对 P99 要求极度严苛（如支付、交易核心）的毫秒级在线业务，首个请求的冷启动仍然是不可接受的。对于这类关键生产库，**应当关闭 scale-to-zero，而采用最小常驻实例配合 autoscaling**。
+3. **Compaction 与日志回收的开销**：
+   在后台，Pageserver 需要持续将 Delta Layer 压缩合并为 Image Layer 并推送到对象存储。当写入吞吐极其恐怖且持续不断时，后台的 Compaction 线程和 GC 算法需要消耗大量的 CPU 和存储带宽。
 
-24 小时都有稳定流量的生产业务，频繁休眠没有价值，保持 Compute 在线、用 autoscaling 解决峰值浪费更合理。对第一次连接的尾延迟极其敏感的业务，也要谨慎配置自动挂起：scale-to-zero 意味着下次使用时要重新唤醒 Compute，和一台一直热着的数据库不是同一个延迟模型。
+---
 
-存算分离也不是没有网络成本。Compute 访问不在本地 buffer cache 中的数据页时，要从存储层获取，缓存命中率、工作集大小和网络存储路径仍然会影响性能。Neon 并不是在所有指标上都比本地盘 PostgreSQL 快。
+## 结语：范式转移的力量
 
-如果只把 Neon 看成一个便宜的云 PostgreSQL，autoscaling、scale-to-zero、Branching、PITR、read replica 会像一组互不相关的产品功能。我的理解是，把它们放回存算分离、WAL、Page 和非覆盖存储这条线上，都是同一个架构选择的结果：一份 PostgreSQL 数据，不必再永远属于某一台正在运行的数据库机器。
+回到最初的问题：**为什么 Neon 要对经典的数据库日志做这样一番大动干戈的重构？**
+
+因为在传统关系型数据库诞生的时代，内存只有几兆，硬盘以磁头寻道驱动，网络带宽稀缺。将状态原地写在磁盘扇区的数据页上，将日志当作临时保险带，是当时物理现实下的最优妥协。
+
+而在今天，云原生环境拥有极其廉价的对象存储（S3）、高吞吐的 RDMA 网络和弹性的微容器。
+Neon 的架构突破告诉我们：**只要把不可变的变更日志（Log/WAL/Binlog）从辅助产物提升为系统唯一的事实源，原本困扰数据库数十年的扩缩容困难、环境复制昂贵、主从同步延迟以及冷备恢复漫长等历史包袱，便全部迎刃而解**。
+
+这不仅是 Serverless 数据库的一次工程胜利，更是数据库架构演进中一次极具启发性的范式转移。
