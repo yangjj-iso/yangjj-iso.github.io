@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 540" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+    <filter id="shadow3" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#0f172a" flood-opacity="0.05"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="860" height="540" rx="16" fill="url(#bgGrad3)" stroke="#e2e8f0" stroke-width="1.5"/>
+
+  <!-- Title -->
+  <g font-family="system-ui, -apple-system, sans-serif">
+    <text x="40" y="42" font-size="20" font-weight="700" fill="#0f172a">高品质开源仓库的标准结构全景图 (OSS Repo Anatomy)</text>
+    <text x="40" y="66" font-size="13" fill="#64748b">一个能吸引贡献者、具备长久生命力项目的四大支柱模块</text>
+  </g>
+
+  <!-- 4 Pillars Grid (2x2) -->
+  <!-- Module 1: 项目门面与说明 -->
+  <g transform="translate(40, 90)" filter="url(#cardShadow)" font-family="system-ui, -apple-system, sans-serif">
+    <rect width="370" height="195" rx="10" fill="#ffffff" stroke="#93c5fd" stroke-width="1.2"/>
+    <rect x="0" y="0" width="370" height="34" rx="10" fill="#eff6ff"/>
+    <path d="M 0 34 L 370 34" stroke="#dbeafe" stroke-width="1"/>
+    <text x="16" y="23" font-size="13" font-weight="700" fill="#1e40af">1. 门面展示与引导 (Showcase &amp; Identity)</text>
+    
+    <text x="16" y="58" font-size="12" font-weight="700" fill="#0f172a">📄 README.md (项目的灵魂)</text>
+    <text x="32" y="76" font-size="11" fill="#64748b">• 一句话精准定义价值与解决的痛点</text>
+    <text x="32" y="92" font-size="11" fill="#64748b">• 动态徽章 (Badges): CI 状态、版本、覆盖率</text>
+    <text x="32" y="108" font-size="11" fill="#64748b">• 30 秒上手 (Quickstart / 最小 Demo)</text>
+    <text x="32" y="124" font-size="11" fill="#64748b">• 架构拓扑图与功能对比矩阵 (Feature Matrix)</text>
+
+    <text x="16" y="152" font-size="12" font-weight="700" fill="#0f172a">📁 docs/ &amp; examples/</text>
+    <text x="32" y="170" font-size="11" fill="#64748b">• 完整 API 参考手册、扩展指南与可运行示例</text>
+  </g>
+
+  <!-- Module 2: 法律与协作规则 -->
+  <g transform="translate(450, 90)" filter="url(#cardShadow)" font-family="system-ui, -apple-system, sans-serif">
+    <rect width="370" height="195" rx="10" fill="#ffffff" stroke="#86efac" stroke-width="1.2"/>
+    <rect x="0" y="0" width="370" height="34" rx="10" fill="#f0fdf4"/>
+    <path d="M 0 34 L 370 34" stroke="#dcfce7" stroke-width="1"/>
+    <text x="16" y="23" font-size="13" font-weight="700" fill="#15803d">2. 法律护城河与协同规则 (Governance)</text>
+
+    <text x="16" y="58" font-size="12" font-weight="700" fill="#0f172a">⚖️ LICENSE (开源许可证)</text>
+    <text x="32" y="76" font-size="11" fill="#64748b">• 没有 License = 默认全版权所有(他人不可随意使用)</text>
+    <text x="32" y="92" font-size="11" fill="#64748b">• 明确商业化、专利授权与衍生代码约束</text>
+
+    <text x="16" y="120" font-size="12" font-weight="700" fill="#0f172a">🤝 CONTRIBUTING.md (贡献指南)</text>
+    <text x="32" y="138" font-size="11" fill="#64748b">• 环境搭建、代码风格、分支与 Commit 约定</text>
+
+    <text x="16" y="162" font-size="12" font-weight="700" fill="#0f172a">🛡️ CODE_OF_CONDUCT.md (行为准则)</text>
+    <text x="32" y="180" font-size="11" fill="#64748b">• 规范交流礼仪，保障友善包容的社区协作氛围</text>
+  </g>
+
+  <!-- Module 3: 自动化质量体系 -->
+  <g transform="translate(40, 305)" filter="url(#cardShadow)" font-family="system-ui, -apple-system, sans-serif">
+    <rect width="370" height="205" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.2"/>
+    <rect x="0" y="0" width="370" height="34" rx="10" fill="#f8fafc"/>
+    <path d="M 0 34 L 370 34" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="16" y="23" font-size="13" font-weight="700" fill="#334155">3. 自动化与质量门槛 (Automated CI/CD)</text>
+
+    <text x="16" y="58" font-size="12" font-weight="700" fill="#0f172a">⚙️ .github/workflows/ (GitHub Actions)</text>
+    <text x="32" y="76" font-size="11" fill="#64748b">• ci.yml: 单元测试、代码覆盖率、多版本矩阵</text>
+    <text x="32" y="92" font-size="11" fill="#64748b">• lint.yml: 语法检查、代码格式化 (Prettier, Ruff)</text>
+    <text x="32" y="108" font-size="11" fill="#64748b">• release.yml: 语义化版本发版与包自动发布</text>
+
+    <text x="16" y="136" font-size="12" font-weight="700" fill="#0f172a">📋 结构化模板 (Templates)</text>
+    <text x="32" y="154" font-size="11" fill="#64748b">• .github/ISSUE_TEMPLATE/: 区分 Bug 与 Feature</text>
+    <text x="32" y="170" font-size="11" fill="#64748b">• .github/pull_request_template.md: 自查清单</text>
+    <text x="32" y="188" font-size="11" fill="#64748b">• CODEOWNERS: 关键模块自动指定审阅人</text>
+  </g>
+
+  <!-- Module 4: 核心工程实现 -->
+  <g transform="translate(450, 305)" filter="url(#cardShadow)" font-family="system-ui, -apple-system, sans-serif">
+    <rect width="370" height="205" rx="10" fill="#ffffff" stroke="#c084fc" stroke-width="1.2"/>
+    <rect x="0" y="0" width="370" height="34" rx="10" fill="#faf5ff"/>
+    <path d="M 0 34 L 370 34" stroke="#f3e8ff" stroke-width="1"/>
+    <text x="16" y="23" font-size="13" font-weight="700" fill="#7e22ce">4. 工程源码与发布基线 (Codebase &amp; Release)</text>
+
+    <text x="16" y="58" font-size="12" font-weight="700" fill="#0f172a">💻 src/ (优雅解耦的源码)</text>
+    <text x="32" y="76" font-size="11" fill="#64748b">• 目录分层清晰，职责单一，避免巨石文件</text>
+
+    <text x="16" y="102" font-size="12" font-weight="700" fill="#0f172a">🧪 tests/ (不可或缺的安全感)</text>
+    <text x="32" y="120" font-size="11" fill="#64748b">• 覆盖核心逻辑，杜绝回归漏洞 (Regression)</text>
+
+    <text x="16" y="146" font-size="12" font-weight="700" fill="#0f172a">🏷️ CHANGELOG.md 与语义化版本 (SemVer)</text>
+    <text x="32" y="164" font-size="11" fill="#64748b">• Major.Minor.Patch (如 v1.2.0) 明确破坏性变更</text>
+    <text x="32" y="182" font-size="11" fill="#64748b">• 配套 Git Tags 和 GitHub Releases 产物分发</text>
+  </g>
+</svg>
